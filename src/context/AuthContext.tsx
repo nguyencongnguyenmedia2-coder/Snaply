@@ -88,6 +88,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(data.session);
             setUser(data.session.user);
             await fetchProfile(data.session.user.id);
+          } else if (mounted) {
+            const localSession = await AsyncStorage.getItem(LOCAL_SESSION_KEY);
+            const localProfile = await AsyncStorage.getItem(LOCAL_PROFILE_KEY);
+            if (localSession) {
+              setUser(JSON.parse(localSession));
+              setProfile(localProfile ? JSON.parse(localProfile) : DEMO_PROFILE);
+            } else {
+              setUser(DEMO_USER);
+              setProfile(DEMO_PROFILE);
+            }
           }
         } else {
           // Check local stored session
@@ -204,14 +214,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) throw error;
 
         if (data.user) {
-          await supabase.from('profiles').upsert({
+          try {
+            await supabase.from('profiles').upsert({
+              id: data.user.id,
+              username,
+              display_name: displayName,
+              avatar_url: null,
+              bio: null,
+              updated_at: new Date().toISOString(),
+            });
+          } catch (profileErr) {
+            console.warn('Profiles table sync deferred:', profileErr);
+          }
+          const createdProfile: Profile = {
             id: data.user.id,
             username,
             display_name: displayName,
             avatar_url: null,
             bio: null,
+            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          });
+          };
+          setProfile(createdProfile);
+          await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(createdProfile));
           setUser(data.user);
           await fetchProfile(data.user.id);
         }
