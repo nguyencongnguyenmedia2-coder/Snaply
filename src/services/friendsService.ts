@@ -155,10 +155,24 @@ export async function acceptFriendRequest(
 ): Promise<{ error: Error | null }> {
   try {
     if (isSupabaseConfigured) {
+      const { data: requestData } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .eq('id', requestId)
+        .single();
+
       await supabase
         .from('friend_requests')
         .update({ status: 'accepted' })
         .eq('id', requestId);
+
+      if (requestData?.sender_id) {
+        // Insert mutual friendships
+        await supabase.from('friendships').upsert([
+          { user_id: requestData.sender_id, friend_id: userId },
+          { user_id: userId, friend_id: requestData.sender_id },
+        ]);
+      }
     }
     const current = await getFriendRequests(userId);
     const updated = current.filter((r) => r.id !== requestId);

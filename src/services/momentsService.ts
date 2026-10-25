@@ -77,18 +77,61 @@ export async function getFeedMoments(userId?: string): Promise<Moment[]> {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        return data.map((item: any) => ({
-          id: item.id,
-          owner_id: item.owner_id,
-          caption: item.caption,
-          media_url: item.media_url,
-          created_at: item.created_at,
-          group_id: item.group_id,
-          group_name: item.groups?.name || null,
-          owner: item.profiles,
-          reactions: {},
-          user_reaction: null,
-        }));
+        // Fetch real reactions for these moments
+        const momentIds = data.map((item: any) => item.id);
+        const { data: reactionsData } = await supabase
+          .from('reactions')
+          .select('moment_id, emoji, user_id')
+          .in('moment_id', momentIds);
+
+        const reactionsByMoment: Record<string, { counts: Record<string, number>; userReact: string | null }> = {};
+        momentIds.forEach((mId: string) => {
+          reactionsByMoment[mId] = { counts: {}, userReact: null };
+        });
+
+        if (reactionsData) {
+          reactionsData.forEach((r: any) => {
+            if (reactionsByMoment[r.moment_id]) {
+              const currentCounts = reactionsByMoment[r.moment_id].counts;
+              currentCounts[r.emoji] = (currentCounts[r.emoji] || 0) + 1;
+              if (r.user_id === userId) {
+                reactionsByMoment[r.moment_id].userReact = r.emoji;
+              }
+            }
+          });
+        }
+
+        // Resolve private media URLs with secure signed URLs
+        const momentsWithSignedUrls = await Promise.all(
+          data.map(async (item: any) => {
+            let resolvedUrl = item.media_url;
+            if (resolvedUrl && !resolvedUrl.startsWith('http')) {
+              try {
+                const { data: signed } = await supabase.storage
+                  .from('moments')
+                  .createSignedUrl(resolvedUrl, 60 * 60 * 24);
+                if (signed?.signedUrl) resolvedUrl = signed.signedUrl;
+              } catch (signErr) {
+                console.warn('Signed URL resolution fallback:', signErr);
+              }
+            }
+
+            return {
+              id: item.id,
+              owner_id: item.owner_id,
+              caption: item.caption,
+              media_url: resolvedUrl,
+              created_at: item.created_at,
+              group_id: item.group_id,
+              group_name: item.groups?.name || null,
+              owner: item.profiles,
+              reactions: reactionsByMoment[item.id]?.counts || {},
+              user_reaction: reactionsByMoment[item.id]?.userReact || null,
+            };
+          })
+        );
+
+        return momentsWithSignedUrls;
       }
     }
 
