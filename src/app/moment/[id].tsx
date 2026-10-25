@@ -3,13 +3,12 @@ import {
   View,
   Text,
   ScrollView,
-  Image,
   Dimensions,
-  StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -21,6 +20,7 @@ import {
   MOMOToast,
 } from '@/components/ui';
 import { getFeedMoments, reactToMoment, deleteMoment } from '@/services/momentsService';
+import { getPhotoDetail } from '@/services/photoStorageService';
 import { Moment } from '@/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -33,15 +33,31 @@ export default function MomentDetailScreen() {
   const { user } = useAuth();
 
   const [moment, setMoment] = useState<Moment | null>(null);
+  const [highResUrl, setHighResUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const moments = await getFeedMoments(user?.id);
-      const found = moments.find((m) => m.id === id);
-      setMoment(found || moments[0] || null);
-      setLoading(false);
+      try {
+        const moments = await getFeedMoments(user?.id);
+        const found = moments.find((m) => m.id === id);
+        const targetMoment = found || moments[0] || null;
+        setMoment(targetMoment);
+
+        // Fetch high-resolution main photo if available
+        if (targetMoment) {
+          const detail = await getPhotoDetail(targetMoment.id);
+          if (detail?.main_url) {
+            setHighResUrl(detail.main_url);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load moment details:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [id, user?.id]);
@@ -54,10 +70,33 @@ export default function MomentDetailScreen() {
     );
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = () => {
     if (!moment || !user) return;
-    await deleteMoment(moment.id, user.id);
-    router.replace('/(tabs)');
+    Alert.alert(
+      'Xóa khoảnh khắc',
+      'Bạn có chắc chắn muốn xóa ảnh này không? Ảnh sẽ được xóa khỏi bảng tin và kho lưu trữ của bạn.',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa ảnh',
+          style: 'destructive',
+          onPress: performDelete,
+        },
+      ]
+    );
+  };
+
+  const performDelete = async () => {
+    if (!moment || !user) return;
+    try {
+      setIsDeleting(true);
+      await deleteMoment(moment.id, user.id);
+      router.replace('/(tabs)');
+    } catch (err) {
+      console.error('Delete error:', err);
+      setIsDeleting(false);
+      Alert.alert('Lỗi', 'Không thể xóa ảnh. Vui lòng thử lại sau.');
+    }
   };
 
   if (loading) {
@@ -87,10 +126,12 @@ export default function MomentDetailScreen() {
         rightAction={
           moment.owner_id === user?.id ? (
             <MOMOButton
-              title="Xóa"
+              title={isDeleting ? 'Đang xóa...' : 'Xóa'}
               variant="ghost"
               size="sm"
-              onPress={handleDelete}
+              loading={isDeleting}
+              disabled={isDeleting}
+              onPress={confirmDelete}
               textStyle={{ color: colors.error }}
             />
           ) : (
@@ -135,10 +176,12 @@ export default function MomentDetailScreen() {
             borderColor: colors.border,
             marginBottom: spacing.lg,
           }}>
-          <Image
-            source={{ uri: moment.media_url }}
+          <ExpoImage
+            source={{ uri: highResUrl || moment.media_url }}
             style={{ width: '100%', height: SCREEN_WIDTH * 1.25, backgroundColor: colors.surfaceMuted }}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
           />
         </View>
 

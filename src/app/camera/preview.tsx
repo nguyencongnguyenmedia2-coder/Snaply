@@ -8,16 +8,15 @@ import {
   Pressable,
   Dimensions,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { MOMOButton, MOMOIconButton, MOMOBottomSheet, MOMOAvatar } from '@/components/ui';
 import { createMoment } from '@/services/momentsService';
+import { uploadPhoto } from '@/services/photoStorageService';
 import { getFriends, getGroups } from '@/services/friendsService';
 import { Profile, Group } from '@/lib/supabase';
 
@@ -40,6 +39,10 @@ export default function CameraPreviewScreen() {
   const [caption, setCaption] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('natural');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<
+    'idle' | 'compressing' | 'uploading_main' | 'uploading_thumb' | 'saving_metadata' | 'error'
+  >('idle');
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Recipient selection
   const [friends, setFriends] = useState<Profile[]>([]);
@@ -68,14 +71,41 @@ export default function CameraPreviewScreen() {
     );
   };
 
+  const getStageMessage = () => {
+    switch (uploadStage) {
+      case 'compressing':
+        return 'Đang nén ảnh & tạo thumbnail...';
+      case 'uploading_main':
+        return 'Đang tải ảnh chính lên kho bảo mật...';
+      case 'uploading_thumb':
+        return 'Đang lưu ảnh thu nhỏ (thumbnail)...';
+      case 'saving_metadata':
+        return 'Đang hoàn tất đăng tải khoảnh khắc...';
+      default:
+        return 'Đang gửi đến bạn bè & Widget...';
+    }
+  };
+
   const handleShare = async () => {
     if (!uri || !user) return;
 
     try {
       setIsUploading(true);
+      setUploadError(null);
+      setUploadStage('compressing');
+
+      // 1. Upload via Snaply two-tier compression & private storage
+      const photo = await uploadPhoto({
+        localUri: uri,
+        caption,
+        ownerId: user.id,
+        onProgress: (stage) => setUploadStage(stage),
+      });
+
+      // 2. Sync with moments feed & notify live widgets
       await createMoment({
         userId: user.id,
-        mediaUri: uri,
+        mediaUri: photo.main_url || photo.object_path,
         caption,
         groupId: selectedGroupId || undefined,
         recipientIds: selectedRecipients.length > 0 ? selectedRecipients : undefined,
@@ -89,8 +119,10 @@ export default function CameraPreviewScreen() {
       });
 
       router.replace('/(tabs)');
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Share error:', err);
+      setUploadStage('error');
+      setUploadError(err.message || 'Tải ảnh lên thất bại. Vui lòng kiểm tra kết nối mạng và thử lại.');
     } finally {
       setIsUploading(false);
     }
@@ -248,9 +280,34 @@ export default function CameraPreviewScreen() {
           />
         </View>
 
-        {/* Share Button */}
+        {/* Upload Error Banner */}
+        {uploadError && (
+          <View
+            style={{
+              backgroundColor: colors.errorLight,
+              padding: spacing.md,
+              borderRadius: radii.md,
+              marginBottom: spacing.md,
+              borderWidth: 1,
+              borderColor: colors.error,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <Ionicons
+              name="alert-circle"
+              size={22}
+              color={colors.error}
+              style={{ marginRight: spacing.sm }}
+            />
+            <Text style={[typography.subhead, { color: colors.error, flex: 1 }]}>
+              {uploadError}
+            </Text>
+          </View>
+        )}
+
+        {/* Share Button & Progress */}
         <MOMOButton
-          title={isUploading ? 'Đang gửi đến bạn bè & Widget...' : 'Chia sẻ khoảnh khắc ✨'}
+          title={isUploading ? getStageMessage() : uploadError ? 'Thử tải lại khoảnh khắc 🔄' : 'Chia sẻ khoảnh khắc ✨'}
           onPress={handleShare}
           loading={isUploading}
           variant="primary"

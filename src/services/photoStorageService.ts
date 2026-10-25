@@ -1,0 +1,488 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase, isSupabaseConfigured, Photo } from '@/lib/supabase';
+import { compressPhotoForUpload, CompressionResult } from './imageCompressionService';
+
+export const SNAPLY_BUCKET = 'snaply-photos';
+export const LOCAL_PHOTOS_KEY = '@snaply_local_photos';
+export const LOCAL_DELETION_JOBS_KEY = '@snaply_deletion_jobs';
+
+// In-memory cache for short-lived signed URLs: path -> { url: string, expiresAt: number }
+interface SignedUrlCacheEntry {
+  url: string;
+  expiresAt: number; // millisecond timestamp
+}
+const signedUrlCache = new Map<string, SignedUrlCacheEntry>();
+
+export function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+export function clearSignedUrlCache(): void {
+  signedUrlCache.clear();
+}
+
+/**
+ * Get or create a short-lived signed URL (valid for 5 minutes) with in-memory caching
+ */
+export async function getSignedPhotoUrl(
+  path: string,
+  expiresInSeconds = 300
+): Promise<string> {
+  if (!path) return '';
+  if (path.startsWith('http')) return path; // Already a remote URL
+
+  const cached = signedUrlCache.get(path);
+  const now = Date.now();
+
+  // If cached and has at least 30 seconds of life remaining, reuse
+  if (cached && cached.expiresAt - now > 30 * 1000) {
+    return cached.url;
+  }
+
+  if (!isSupabaseConfigured) {
+    const mockSigned = `https://mock-storage.snaply.local/${path}?token=mock_signed_ttl_${now + expiresInSeconds * 1000}`;
+    signedUrlCache.set(path, {
+      url: mockSigned,
+      expiresAt: now + expiresInSeconds * 1000,
+    });
+    return mockSigned;
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(SNAPLY_BUCKET)
+      .createSignedUrl(path, expiresInSeconds);
+
+    if (error || !data?.signedUrl) {
+      console.warn(`[photoStorage] Failed to create signed URL for ${path}:`, error);
+      return path;
+    }
+
+    signedUrlCache.set(path, {
+      url: data.signedUrl,
+      expiresAt: now + expiresInSeconds * 1000,
+    });
+
+    return data.signedUrl;
+  } catch (err) {
+    console.warn(`[photoStorage] Error creating signed URL for ${path}:`, err);
+    return path;
+  }
+}
+
+/**
+ * Upload photo following full Snaply two-tier compression & private storage architecture
+ */
+export async function uploadPhoto(params: {
+  localUri: string;
+  caption?: string;
+  ownerId: string;
+  onProgress?: (stage: 'compressing' | 'uploading_main' | 'uploading_thumb' | 'saving_metadata') => void;
+}): Promise<Photo> {
+  const { localUri, caption, ownerId, onProgress } = params;
+
+  if (!ownerId) {
+    throw new Error('Người dùng chưa đăng nhập. Không thể tải ảnh lên.');
+  }
+
+  const photoId = generateUUID();
+  const objectPath = `${ownerId}/${photoId}.jpg`;
+  const thumbnailPath = `${ownerId}/${photoId}_thumb.jpg`;
+
+  // 1. Device-side compression
+  onProgress?.('compressing');
+  const compressed: CompressionResult = await compressPhotoForUpload(localUri);
+
+  if (!isSupabaseConfigured) {
+    // Development / offline mock fallback
+    const mockPhoto: Photo = {
+      id: photoId,
+      owner_id: ownerId,
+      object_path: objectPath,
+      thumbnail_path: thumbnailPath,
+      caption: caption?.trim() || null,
+      mime_type: 'image/jpeg',
+      width: compressed.main.width,
+      height: compressed.main.height,
+      size_bytes: compressed.main.sizeBytes,
+      thumbnail_size_bytes: compressed.thumbnail.sizeBytes,
+      created_at: new Date().toISOString(),
+      deleted_at: null,
+      thumbnail_url: compressed.thumbnail.uri,
+      main_url: compressed.main.uri,
+    };
+
+    const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
+    const list: Photo[] = stored ? JSON.parse(stored) : [];
+    await AsyncStorage.setItem(LOCAL_PHOTOS_KEY, JSON.stringify([mockPhoto, ...list]));
+    return mockPhoto;
+  }
+
+  // 2. Upload Main Photo
+  onProgress?.('uploading_main');
+  let mainUploaded = false;
+  let thumbUploaded = false;
+
+  try {
+    const mainResponse = await fetch(compressed.main.uri);
+    const mainBlob = await mainResponse.blob();
+
+    const { error: mainUploadError } = await supabase.storage
+      .from(SNAPLY_BUCKET)
+      .upload(objectPath, mainBlob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (mainUploadError) {
+      throw new Error(`Lỗi khi tải ảnh chính lên kho lưu trữ: ${mainUploadError.message}`);
+    }
+    mainUploaded = true;
+
+    // 3. Upload Thumbnail
+    onProgress?.('uploading_thumb');
+    const thumbResponse = await fetch(compressed.thumbnail.uri);
+    const thumbBlob = await thumbResponse.blob();
+
+    const { error: thumbUploadError } = await supabase.storage
+      .from(SNAPLY_BUCKET)
+      .upload(thumbnailPath, thumbBlob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (thumbUploadError) {
+      throw new Error(`Lỗi khi tải ảnh thu nhỏ lên kho lưu trữ: ${thumbUploadError.message}`);
+    }
+    thumbUploaded = true;
+
+    // 4. Save metadata to PostgreSQL photos table
+    onProgress?.('saving_metadata');
+    const { data: photoRecord, error: dbError } = await supabase
+      .from('photos')
+      .insert({
+        id: photoId,
+        owner_id: ownerId,
+        object_path: objectPath,
+        thumbnail_path: thumbnailPath,
+        caption: caption?.trim() || null,
+        mime_type: 'image/jpeg',
+        width: compressed.main.width,
+        height: compressed.main.height,
+        size_bytes: compressed.main.sizeBytes,
+        thumbnail_size_bytes: compressed.thumbnail.sizeBytes,
+      })
+      .select('*, owner:profiles!owner_id(*)')
+      .single();
+
+    if (dbError || !photoRecord) {
+      throw new Error(`Lỗi khi lưu thông tin ảnh vào cơ sở dữ liệu: ${dbError?.message || 'Không có dữ liệu trả về'}`);
+    }
+
+    // Resolve initial signed URLs for fast display
+    const thumbSignedUrl = await getSignedPhotoUrl(thumbnailPath);
+    const mainSignedUrl = await getSignedPhotoUrl(objectPath);
+
+    const completePhoto: Photo = {
+      ...photoRecord,
+      thumbnail_url: thumbSignedUrl,
+      main_url: mainSignedUrl,
+    };
+
+    return completePhoto;
+  } catch (err: any) {
+    // ROLLBACK: If any step fails, clean up uploaded files to prevent orphans!
+    console.warn('[photoStorage] Upload failure, rolling back storage artifacts...', err);
+    const cleanupFiles: string[] = [];
+    if (mainUploaded) cleanupFiles.push(objectPath);
+    if (thumbUploaded) cleanupFiles.push(thumbnailPath);
+
+    if (cleanupFiles.length > 0) {
+      supabase.storage
+        .from(SNAPLY_BUCKET)
+        .remove(cleanupFiles)
+        .catch((cleanErr) => console.warn('[photoStorage] Rollback removal failed:', cleanErr));
+    }
+
+    throw err;
+  }
+}
+
+/**
+ * Fetch paginated photos for feed using thumbnail URLs (default 20 per page)
+ */
+export async function getFeedPhotos(
+  userId: string,
+  page = 0,
+  limit = 20
+): Promise<{ photos: Photo[]; hasMore: boolean }> {
+  try {
+    if (isSupabaseConfigured && userId) {
+      const from = page * limit;
+      const to = from + limit - 1;
+
+      const { data, error } = await supabase
+        .from('photos')
+        .select(`
+          *,
+          owner:profiles!owner_id (id, username, display_name, avatar_url)
+        `)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+
+      if (data) {
+        // Resolve thumbnail signed URLs in parallel with caching
+        const photosWithUrls = await Promise.all(
+          data.map(async (p: any) => {
+            const thumbUrl = await getSignedPhotoUrl(p.thumbnail_path);
+            return {
+              ...p,
+              thumbnail_url: thumbUrl,
+            } as Photo;
+          })
+        );
+
+        return {
+          photos: photosWithUrls,
+          hasMore: data.length === limit,
+        };
+      }
+    }
+
+    // Fallback store
+    const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
+    const list: Photo[] = stored ? JSON.parse(stored) : [];
+    const active = list.filter((p) => !p.deleted_at);
+    return {
+      photos: active.slice(page * limit, (page + 1) * limit),
+      hasMore: active.length > (page + 1) * limit,
+    };
+  } catch (err) {
+    console.warn('[photoStorage] getFeedPhotos error:', err);
+    return { photos: [], hasMore: false };
+  }
+}
+
+/**
+ * Fetch single photo details, ensuring high-res main photo signed URL is resolved
+ */
+export async function getPhotoDetail(photoId: string): Promise<Photo | null> {
+  try {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('photos')
+        .select(`
+          *,
+          owner:profiles!owner_id (id, username, display_name, avatar_url)
+        `)
+        .eq('id', photoId)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (error || !data) return null;
+
+      const [thumbUrl, mainUrl] = await Promise.all([
+        getSignedPhotoUrl(data.thumbnail_path),
+        getSignedPhotoUrl(data.object_path),
+      ]);
+
+      return {
+        ...data,
+        thumbnail_url: thumbUrl,
+        main_url: mainUrl,
+      };
+    }
+
+    const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
+    const list: Photo[] = stored ? JSON.parse(stored) : [];
+    const found = list.find((p) => p.id === photoId && !p.deleted_at);
+    return found || null;
+  } catch (err) {
+    console.warn('[photoStorage] getPhotoDetail error:', err);
+    return null;
+  }
+}
+
+/**
+ * Safe, multi-step photo deletion with queue, storage cleanup, and resilience against missing files
+ */
+export async function deletePhoto(photoId: string, ownerId: string): Promise<boolean> {
+  if (!photoId || !ownerId) {
+    throw new Error('Missing photoId or ownerId for deletion');
+  }
+
+  // 1. Check local store or fetch photo to verify ownership
+  const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
+  if (stored) {
+    const list: Photo[] = JSON.parse(stored);
+    const target = list.find((p) => p.id === photoId);
+    if (target && target.owner_id !== ownerId) {
+      throw new Error('Chỉ chủ sở hữu mới có quyền xóa ảnh này.');
+    }
+  }
+
+  let objectPath = '';
+  let thumbnailPath = '';
+
+  if (isSupabaseConfigured) {
+    try {
+      // Step A: Soft delete & enqueue deletion job atomically via RPC or direct update
+      const { data: photoData } = await supabase
+        .from('photos')
+        .select('object_path, thumbnail_path, owner_id')
+        .eq('id', photoId)
+        .maybeSingle();
+
+      if (photoData) {
+        if (photoData.owner_id !== ownerId) {
+          throw new Error('Chỉ chủ sở hữu mới có quyền xóa ảnh này.');
+        }
+        objectPath = photoData.object_path;
+        thumbnailPath = photoData.thumbnail_path;
+      }
+
+      // Mark soft deleted immediately so it disappears from feed
+      await supabase
+        .from('photos')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', photoId)
+        .eq('owner_id', ownerId);
+
+      // Enqueue deletion job
+      let jobId: string | null = null;
+      if (objectPath && thumbnailPath) {
+        const { data: jobData } = await supabase
+          .from('photo_deletion_jobs')
+          .insert({
+            photo_id: photoId,
+            owner_id: ownerId,
+            object_path: objectPath,
+            thumbnail_path: thumbnailPath,
+            status: 'processing',
+            attempts: 1,
+          })
+          .select('id')
+          .maybeSingle();
+
+        jobId = jobData?.id || null;
+      }
+
+      // Step B: Delete storage files (handles missing files gracefully)
+      const filesToDelete: string[] = [];
+      if (objectPath) filesToDelete.push(objectPath);
+      if (thumbnailPath) filesToDelete.push(thumbnailPath);
+
+      if (filesToDelete.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from(SNAPLY_BUCKET)
+          .remove(filesToDelete);
+
+        if (storageError) {
+          console.warn('[photoStorage] Storage delete warning (job saved for retry):', storageError);
+          if (jobId) {
+            await supabase
+              .from('photo_deletion_jobs')
+              .update({
+                status: 'pending',
+                error_message: storageError.message,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', jobId);
+          }
+        } else {
+          // Success: delete record permanently or mark completed
+          if (jobId) {
+            await supabase
+              .from('photo_deletion_jobs')
+              .update({
+                status: 'completed',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', jobId);
+          }
+          await supabase.from('photos').delete().eq('id', photoId).eq('owner_id', ownerId);
+        }
+      }
+
+      // Evict from cache
+      if (objectPath) signedUrlCache.delete(objectPath);
+      if (thumbnailPath) signedUrlCache.delete(thumbnailPath);
+    } catch (err) {
+      if ((err as Error).message.includes('Chỉ chủ sở hữu')) {
+        throw err;
+      }
+      console.warn('[photoStorage] Error during deletion:', err);
+    }
+  }
+
+  // Update local offline cache with soft-delete
+  if (stored) {
+    const list: Photo[] = JSON.parse(stored);
+    const updated = list.map((p) =>
+      p.id === photoId ? { ...p, deleted_at: new Date().toISOString() } : p
+    );
+    await AsyncStorage.setItem(LOCAL_PHOTOS_KEY, JSON.stringify(updated));
+  }
+
+  return true;
+}
+
+/**
+ * Background retry handler for pending deletion jobs
+ */
+export async function processPendingDeletionJobs(ownerId: string): Promise<number> {
+  if (!isSupabaseConfigured || !ownerId) return 0;
+
+  try {
+    const { data: jobs, error } = await supabase
+      .from('photo_deletion_jobs')
+      .select('*')
+      .eq('owner_id', ownerId)
+      .eq('status', 'pending')
+      .limit(10);
+
+    if (error || !jobs || jobs.length === 0) return 0;
+
+    let processedCount = 0;
+    for (const job of jobs) {
+      const filesToDelete = [job.object_path, job.thumbnail_path].filter(Boolean);
+
+      const { error: delError } = await supabase.storage
+        .from(SNAPLY_BUCKET)
+        .remove(filesToDelete);
+
+      if (!delError) {
+        await supabase
+          .from('photo_deletion_jobs')
+          .update({ status: 'completed', updated_at: new Date().toISOString() })
+          .eq('id', job.id);
+
+        if (job.photo_id) {
+          await supabase.from('photos').delete().eq('id', job.photo_id);
+        }
+        processedCount++;
+      } else {
+        await supabase
+          .from('photo_deletion_jobs')
+          .update({
+            attempts: job.attempts + 1,
+            error_message: delError.message,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', job.id);
+      }
+    }
+
+    return processedCount;
+  } catch (err) {
+    console.warn('[photoStorage] processPendingDeletionJobs error:', err);
+    return 0;
+  }
+}

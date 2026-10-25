@@ -1,6 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured, Moment } from '@/lib/supabase';
 import { updateWidgetMomentsSnapshot } from '@/services/widgetService';
+import {
+  uploadPhoto,
+  deletePhoto,
+  getSignedPhotoUrl,
+} from './photoStorageService';
 
 const LOCAL_MOMENTS_KEY = '@momo_local_moments';
 
@@ -101,16 +106,13 @@ export async function getFeedMoments(userId?: string): Promise<Moment[]> {
           });
         }
 
-        // Resolve private media URLs with secure signed URLs
+        // Resolve private media URLs with secure signed URLs and memory caching
         const momentsWithSignedUrls = await Promise.all(
           data.map(async (item: any) => {
             let resolvedUrl = item.media_url;
             if (resolvedUrl && !resolvedUrl.startsWith('http')) {
               try {
-                const { data: signed } = await supabase.storage
-                  .from('moments')
-                  .createSignedUrl(resolvedUrl, 60 * 60 * 24);
-                if (signed?.signedUrl) resolvedUrl = signed.signedUrl;
+                resolvedUrl = await getSignedPhotoUrl(resolvedUrl, 300);
               } catch (signErr) {
                 console.warn('Signed URL resolution fallback:', signErr);
               }
@@ -159,42 +161,16 @@ export async function uploadMomentMedia(
     return uri;
   }
 
-  let attempt = 0;
-  while (attempt <= retries) {
-    try {
-      const filename = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      const { data, error } = await supabase.storage
-        .from('moments')
-        .upload(filename, blob, {
-          contentType: 'image/jpeg',
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      // Generate a private, authorized signed URL (valid for 24 hours)
-      const { data: signedData, error: signError } = await supabase.storage
-        .from('moments')
-        .createSignedUrl(data.path, 60 * 60 * 24);
-
-      if (signError || !signedData?.signedUrl) throw signError || new Error('Could not create signed URL');
-
-      return signedData.signedUrl;
-    } catch (err) {
-      attempt++;
-      if (attempt > retries) {
-        console.warn(`Storage upload failed after ${retries + 1} attempts, falling back to local uri:`, err);
-        return uri;
-      }
-      // Wait 500ms before retry
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
+  try {
+    const photo = await uploadPhoto({
+      localUri: uri,
+      ownerId: userId,
+    });
+    return photo.main_url || photo.object_path;
+  } catch (err) {
+    console.warn('[momentsService] uploadMomentMedia delegated error:', err);
+    return uri;
   }
-
-  return uri;
 }
 
 export async function createMoment(params: {
@@ -329,6 +305,11 @@ export async function deleteMoment(momentId: string, userId: string): Promise<bo
   await AsyncStorage.setItem(LOCAL_MOMENTS_KEY, JSON.stringify(filtered));
 
   if (isSupabaseConfigured) {
+    try {
+      await deletePhoto(momentId, userId);
+    } catch (photoErr) {
+      console.warn('[momentsService] deletePhoto error:', photoErr);
+    }
     await supabase.from('moments').delete().eq('id', momentId).eq('owner_id', userId);
   }
 

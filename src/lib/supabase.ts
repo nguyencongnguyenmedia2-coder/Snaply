@@ -73,3 +73,45 @@ export type Group = {
   created_at: string;
   member_count?: number;
 };
+
+export type Photo = {
+  id: string;
+  owner_id: string;
+  object_path: string;
+  thumbnail_path: string;
+  caption?: string | null;
+  mime_type: string;
+  width: number | null;
+  height: number | null;
+  size_bytes: number | null;
+  thumbnail_size_bytes: number | null;
+  created_at: string;
+  deleted_at: string | null;
+  owner?: Profile;
+  thumbnail_url?: string;
+  main_url?: string;
+};
+
+export type Friendship = {
+  id: string;
+  user_low: string;
+  user_high: string;
+  requested_by: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'blocked';
+  created_at: string;
+  updated_at: string;
+  other_profile?: Profile;
+};
+
+export type PhotoDeletionJob = {
+  id: string;
+  photo_id: string;
+  owner_id: string;
+  object_path: string;
+  thumbnail_path: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  attempts: number;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+};

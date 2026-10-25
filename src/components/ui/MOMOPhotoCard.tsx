@@ -2,13 +2,13 @@ import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   Pressable,
   StyleSheet,
   Dimensions,
   Platform,
   ViewStyle,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
@@ -176,7 +176,9 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
             height: imageHeight,
             backgroundColor: colors.surfaceMuted,
           }}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={200}
         />
 
         {showHeartOverlay && (
