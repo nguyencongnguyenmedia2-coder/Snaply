@@ -29,6 +29,7 @@ import {
   deleteMoment,
 } from '@/services/momentsService';
 import { getFriends, getGroups } from '@/services/friendsService';
+import { realtimeManager } from '@/services/realtimeService';
 import { Moment, Profile, Group } from '@/lib/supabase';
 
 export default function HomeFeedScreen() {
@@ -69,7 +70,43 @@ export default function HomeFeedScreen() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+
+    // Subscribe to real-time moment and reaction updates
+    const unsubMoments = realtimeManager.subscribeToMoments(
+      user?.id || 'demo',
+      (newMoment) => {
+        setMoments((prev) => {
+          if (prev.some((m) => m.id === newMoment.id)) return prev;
+          return [newMoment, ...prev];
+        });
+      },
+      (deletedId) => {
+        setMoments((prev) => prev.filter((m) => m.id !== deletedId));
+      }
+    );
+
+    const unsubReactions = realtimeManager.subscribeToReactions(
+      (momentId, emoji, _userId, isAdded) => {
+        setMoments((prev) =>
+          prev.map((m) => {
+            if (m.id !== momentId) return m;
+            const reactions = { ...(m.reactions || {}) };
+            if (isAdded) {
+              reactions[emoji] = (reactions[emoji] || 0) + 1;
+            } else {
+              reactions[emoji] = Math.max(0, (reactions[emoji] || 1) - 1);
+            }
+            return { ...m, reactions };
+          })
+        );
+      }
+    );
+
+    return () => {
+      unsubMoments();
+      unsubReactions();
+    };
+  }, [loadData, user?.id]);
 
   const onRefresh = () => {
     setRefreshing(true);

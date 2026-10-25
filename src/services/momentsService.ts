@@ -108,37 +108,50 @@ export async function getFeedMoments(userId?: string): Promise<Moment[]> {
 
 export async function uploadMomentMedia(
   uri: string,
-  userId: string
+  userId: string,
+  retries = 2
 ): Promise<string> {
   if (!isSupabaseConfigured) {
     // Return local uri or persistent path in development/mock mode
     return uri;
   }
 
-  try {
-    const filename = `${userId}/${Date.now()}.jpg`;
-    const response = await fetch(uri);
-    const blob = await response.blob();
+  let attempt = 0;
+  while (attempt <= retries) {
+    try {
+      const filename = `${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
-    const { data, error } = await supabase.storage
-      .from('moments')
-      .upload(filename, blob, {
-        contentType: 'image/jpeg',
-        upsert: false,
-      });
+      const { data, error } = await supabase.storage
+        .from('moments')
+        .upload(filename, blob, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Get public / signed URL
-    const { data: urlData } = supabase.storage
-      .from('moments')
-      .getPublicUrl(data.path);
+      // Generate a private, authorized signed URL (valid for 24 hours)
+      const { data: signedData, error: signError } = await supabase.storage
+        .from('moments')
+        .createSignedUrl(data.path, 60 * 60 * 24);
 
-    return urlData.publicUrl;
-  } catch (err) {
-    console.warn('Storage upload failed, falling back to local uri:', err);
-    return uri;
+      if (signError || !signedData?.signedUrl) throw signError || new Error('Could not create signed URL');
+
+      return signedData.signedUrl;
+    } catch (err) {
+      attempt++;
+      if (attempt > retries) {
+        console.warn(`Storage upload failed after ${retries + 1} attempts, falling back to local uri:`, err);
+        return uri;
+      }
+      // Wait 500ms before retry
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
+
+  return uri;
 }
 
 export async function createMoment(params: {
