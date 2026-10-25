@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,6 +98,23 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = async () => {
+    const doLogout = async () => {
+      try {
+        await signOut();
+        router.replace('/auth/sign-in');
+      } catch (err) {
+        console.warn('Sign out error:', err);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window !== 'undefined' ? window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi Snaply?') : true;
+      if (confirmed) {
+        await doLogout();
+      }
+      return;
+    }
+
     Alert.alert(
       'Đăng xuất',
       'Bạn có chắc chắn muốn đăng xuất khỏi Snaply?',
@@ -105,10 +123,7 @@ export default function ProfileScreen() {
         {
           text: 'Đăng xuất',
           style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/auth/sign-in');
-          },
+          onPress: doLogout,
         },
       ]
     );

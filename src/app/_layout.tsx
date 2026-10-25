@@ -1,15 +1,35 @@
 import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from 'react-native';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Colors } from '@/theme';
 import { SnaplyWelcomeIntro } from '@/components/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+function NavigationGate({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === 'auth';
+
+    if (!user && !inAuthGroup) {
+      router.replace('/auth/sign-in');
+    } else if (user && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [user, isLoading, segments]);
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -28,13 +48,14 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-              animation: 'slide_from_right',
-            }}>
+          <NavigationGate>
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                animation: 'slide_from_right',
+              }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="camera/preview" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="moment/[id]" options={{ headerShown: false }} />
@@ -73,6 +94,7 @@ export default function RootLayout() {
             />
           </Stack>
           <SnaplyWelcomeIntro />
+          </NavigationGate>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

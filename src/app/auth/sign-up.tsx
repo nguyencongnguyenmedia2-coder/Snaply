@@ -115,7 +115,12 @@ export default function SignUpScreen() {
     );
 
     if (error) {
-      setGlobalError(error.message);
+      const msg = error.message || '';
+      if (msg.includes('rate limit')) {
+        setGlobalError('Hệ thống đang quá tải gửi email xác nhận. Bạn có thể thử lại sau ít phút hoặc đăng nhập nhanh.');
+      } else {
+        setGlobalError(msg || 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.');
+      }
     } else if (requiresEmailConfirmation) {
       setConfirmationNotice(email.trim());
     } else {

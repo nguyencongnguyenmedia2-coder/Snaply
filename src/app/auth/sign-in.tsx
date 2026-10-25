@@ -34,7 +34,12 @@ export default function SignInScreen() {
     setErrorMessage(null);
     const { error } = await signIn(email.trim(), password);
     if (error) {
-      setErrorMessage(error.message || 'Email hoặc mật khẩu không chính xác.');
+      const msg = error.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setErrorMessage('Email hoặc mật khẩu không chính xác. Bạn cũng có thể chọn "Đăng nhập nhanh tài khoản mẫu" bên dưới.');
+      } else {
+        setErrorMessage(msg || 'Đăng nhập không thành công. Vui lòng thử lại.');
+      }
     } else {
       router.replace('/(tabs)');
     }

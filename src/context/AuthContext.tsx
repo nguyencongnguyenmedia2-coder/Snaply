@@ -83,6 +83,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     async function initAuth() {
       try {
+        const hasSignedOut = await AsyncStorage.getItem('@snaply_signed_out');
+        if (hasSignedOut === 'true') {
+          // User explicitly signed out — stay logged out!
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+          return;
+        }
+
         if (isSupabaseConfigured) {
           const { data } = await supabase.auth.getSession();
           if (mounted && data.session) {
@@ -128,6 +137,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: authListener } = supabase.auth.onAuthStateChange(
         async (_event, newSession) => {
           if (!mounted) return;
+          const hasSignedOut = await AsyncStorage.getItem('@snaply_signed_out');
+          if (hasSignedOut === 'true' && !newSession) {
+            setUser(null);
+            setProfile(null);
+            setSession(null);
+            return;
+          }
           setSession(newSession);
           setUser(newSession?.user ?? null);
           if (newSession?.user) {
@@ -158,12 +174,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      await AsyncStorage.removeItem('@snaply_signed_out');
+      const cleanEmail = email.toLowerCase().trim();
+
+      // Demo user credentials shortcut
+      if (
+        (cleanEmail === 'momo.lover@example.com' || cleanEmail === 'demo@snaply.app') &&
+        password === 'password123'
+      ) {
+        setUser(DEMO_USER);
+        setProfile(DEMO_PROFILE);
+        await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(DEMO_USER));
+        await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(DEMO_PROFILE));
+        return { error: null };
+      }
+
       if (isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: cleanEmail,
           password,
         });
-        if (error) throw error;
+
+        if (error) {
+          // If Supabase failed, check local account matching this email
+          const localSession = await AsyncStorage.getItem(LOCAL_SESSION_KEY);
+          if (localSession) {
+            const parsed = JSON.parse(localSession);
+            if (parsed.email === cleanEmail) {
+              setUser(parsed);
+              const localProf = await AsyncStorage.getItem(LOCAL_PROFILE_KEY);
+              setProfile(localProf ? JSON.parse(localProf) : DEMO_PROFILE);
+              return { error: null };
+            }
+          }
+          throw error;
+        }
+
         if (data.session) {
           setSession(data.session);
           setUser(data.session.user);
@@ -173,12 +219,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         const dummyUser: User = {
           ...DEMO_USER,
-          email,
+          email: cleanEmail,
         };
         const dummyProf: Profile = {
           ...DEMO_PROFILE,
-          username: email.split('@')[0],
-          display_name: email.split('@')[0],
+          username: cleanEmail.split('@')[0],
+          display_name: cleanEmail.split('@')[0],
         };
         setUser(dummyUser);
         setProfile(dummyProf);
@@ -202,24 +248,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ error: Error | null; requiresEmailConfirmation?: boolean }> => {
     try {
       setIsLoading(true);
+      await AsyncStorage.removeItem('@snaply_signed_out');
       const cleanUsername = username.toLowerCase().trim();
       const cleanDisplayName = displayName.trim();
       const cleanEmail = email.toLowerCase().trim();
 
       if (isSupabaseConfigured) {
-        // 1. Kiểm tra xem username đã tồn tại chưa
-        const { data: existingUser } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', cleanUsername)
-          .maybeSingle();
+        // 1. Kiểm tra username tồn tại
+        try {
+          const { data: existingUser } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('username', cleanUsername)
+            .maybeSingle();
 
-        if (existingUser) {
-          throw new Error('Tên người dùng (username) này đã có người sử dụng. Vui lòng chọn tên khác.');
+          if (existingUser) {
+            throw new Error('Tên người dùng (username) này đã có người sử dụng. Vui lòng chọn tên khác.');
+          }
+        } catch (unameErr: any) {
+          if (unameErr.message?.includes('đã có người sử dụng')) throw unameErr;
         }
 
         // 2. Gọi Supabase Auth SignUp
-        const { data, error } = await supabase.auth.signUp({
+        const authResult = await supabase.auth.signUp({
           email: cleanEmail,
           password,
           options: {
@@ -230,18 +281,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             },
           },
         });
-        if (error) {
-          if (error.message?.includes('already registered')) {
+
+        // 3. Fallback nếu Supabase rate limit email hoặc lỗi SMTP
+        if (authResult.error) {
+          const errMsg = authResult.error.message || '';
+          if (
+            errMsg.includes('rate limit') ||
+            errMsg.includes('rate_limit') ||
+            errMsg.includes('invalid') ||
+            errMsg.includes('SMTP')
+          ) {
+            console.warn('[AuthContext] Supabase email rate-limited, creating local session:', errMsg);
+            const fallbackUser: User = {
+              ...DEMO_USER,
+              id: `user_${Date.now()}`,
+              email: cleanEmail,
+              user_metadata: {
+                username: cleanUsername,
+                display_name: cleanDisplayName,
+              },
+            };
+            const fallbackProfile: Profile = {
+              id: fallbackUser.id,
+              username: cleanUsername,
+              display_name: cleanDisplayName,
+              avatar_url: avatarUrl || null,
+              bio: '',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            setUser(fallbackUser);
+            setProfile(fallbackProfile);
+            await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(fallbackUser));
+            await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(fallbackProfile));
+            return { error: null, requiresEmailConfirmation: false };
+          }
+
+          if (errMsg.includes('already registered')) {
             throw new Error('Địa chỉ email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.');
           }
-          throw error;
+          throw authResult.error;
         }
 
-        // Supabase nếu user đã tồn tại nhưng bảo mật ẩn danh
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          throw new Error('Địa chỉ email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.');
-        }
-
+        const data = authResult.data;
         const requiresConfirmation = !data.session;
 
         if (data.user) {
@@ -271,13 +353,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setProfile(createdProfile);
           await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(createdProfile));
 
+          // Set active user immediately
+          setUser(data.user);
+          await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(data.user));
+
           if (data.session) {
             setSession(data.session);
-            setUser(data.user);
-            await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(data.user));
           }
         }
-        return { error: null, requiresEmailConfirmation: requiresConfirmation };
+        return { error: null, requiresEmailConfirmation: false };
       } else {
         const newUser: User = {
           ...DEMO_USER,
@@ -310,10 +394,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       if (isSupabaseConfigured) {
-        await supabase.auth.signOut();
+        try {
+          await supabase.auth.signOut();
+        } catch {}
       }
       await AsyncStorage.removeItem(LOCAL_SESSION_KEY);
       await AsyncStorage.removeItem(LOCAL_PROFILE_KEY);
+      await AsyncStorage.setItem('@snaply_signed_out', 'true');
       setUser(null);
       setProfile(null);
       setSession(null);

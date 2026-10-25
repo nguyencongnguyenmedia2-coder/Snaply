@@ -111,6 +111,10 @@ if (fs.existsSync(indexHtmlPath)) {
   html = html.replace('</head>', `${seoTags}\n  </head>`);
   fs.writeFileSync(indexHtmlPath, html, 'utf8');
   console.log('✅ [SEO] dist/index.html injected successfully!');
+
+  // Copy index.html to 404.html for Single Page App direct route fallback
+  fs.copyFileSync(indexHtmlPath, path.join(distDir, '404.html'));
+  console.log('📄 [SPA] Copied dist/index.html to dist/404.html for direct client routing');
 }
 
 console.log('✨ [Build] Production web build completed in dist/ with Full SEO!');
