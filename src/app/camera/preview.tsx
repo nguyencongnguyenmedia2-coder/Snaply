@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { getFriends } from '@/services/friendsService';
 import { Profile } from '@/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PHOTO_SIZE = Math.min(SCREEN_WIDTH - 36, 390);
 
 // Caption Pill Styles (cycled via the Aa✨ button)
 const CAPTION_STYLES = [
@@ -75,9 +76,24 @@ const DEMO_FRIENDS: Profile[] = [
 
 export default function CameraPreviewScreen() {
   const router = useRouter();
-  const { uri } = useLocalSearchParams<{ uri: string }>();
+  const { uri, uris } = useLocalSearchParams<{ uri?: string; uris?: string }>();
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
+
+  // Multi-photo list parsing
+  const photos = useMemo<string[]>(() => {
+    if (uris) {
+      try {
+        const parsed = JSON.parse(uris);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(Boolean);
+        }
+      } catch {}
+    }
+    return uri ? [uri] : [];
+  }, [uri, uris]);
+
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
   // Media & Caption State
   const [caption, setCaption] = useState('');
@@ -94,7 +110,6 @@ export default function CameraPreviewScreen() {
 
   // Upload State
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadStage, setUploadStage] = useState<string>('');
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Animated scale for send button
@@ -150,7 +165,7 @@ export default function CameraPreviewScreen() {
   };
 
   const handleSendMoment = async () => {
-    if (!uri || !user || isUploading) return;
+    if (photos.length === 0 || !user || isUploading) return;
 
     triggerHaptic();
 
@@ -171,22 +186,21 @@ export default function CameraPreviewScreen() {
     try {
       setIsUploading(true);
       setUploadError(null);
-      setUploadStage('Đang nén & lưu ảnh...');
 
-      // 1. Upload photo via private storage
-      const photo = await uploadPhoto({
-        localUri: uri,
-        caption,
-        ownerId: user.id,
-        onProgress: (stage) => {
-          if (stage === 'compressing') setUploadStage('Đang nén ảnh 2 tầng...');
-          else if (stage === 'uploading_main') setUploadStage('Đang lưu kho ảnh...');
-          else if (stage === 'uploading_thumb') setUploadStage('Đang tạo thumbnail...');
-          else if (stage === 'saving_metadata') setUploadStage('Đang gửi Widget...');
-        },
-      });
+      // Upload all photos in parallel via private R2/Supabase storage
+      const uploadedPhotos = await Promise.all(
+        photos.map((photoUri) =>
+          uploadPhoto({
+            localUri: photoUri,
+            caption,
+            ownerId: user.id,
+          })
+        )
+      );
 
-      // 2. Determine recipients
+      const uploadedUrls = uploadedPhotos.map((p) => p.main_url || p.object_path);
+
+      // Determine recipients
       let targetRecipients: string[] | undefined = undefined;
       if (recipientMode === 'friend' && selectedFriendId) {
         targetRecipients = [selectedFriendId];
@@ -194,10 +208,11 @@ export default function CameraPreviewScreen() {
         targetRecipients = [user.id]; // Private journal
       }
 
-      // 3. Create Moment & Update Widget
+      // Create Moment & Update Widget
       await createMoment({
         userId: user.id,
-        mediaUri: photo.main_url || photo.object_path,
+        mediaUri: uploadedUrls[0],
+        mediaUris: uploadedUrls,
         caption: caption.trim() || undefined,
         recipientIds: targetRecipients,
         ownerProfile: profile
@@ -209,11 +224,11 @@ export default function CameraPreviewScreen() {
           : undefined,
       });
 
+      // Smooth direct navigation to feed
       router.replace('/(tabs)');
     } catch (err: any) {
       console.warn('Send moment error:', err);
       setUploadError(err.message || 'Gửi ảnh thất bại. Vui lòng thử lại.');
-    } finally {
       setIsUploading(false);
     }
   };
@@ -236,11 +251,33 @@ export default function CameraPreviewScreen() {
       <View style={styles.centerSection}>
         {/* Photo Squircle Container */}
         <View style={styles.photoCard}>
-          <Image
-            source={{ uri }}
-            style={styles.photoImage}
-            resizeMode="cover"
-          />
+          {photos.length > 1 ? (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              nestedScrollEnabled
+              onMomentumScrollEnd={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const page = Math.round(offsetX / PHOTO_SIZE);
+                if (page >= 0 && page < photos.length) {
+                  setActivePhotoIndex(page);
+                }
+              }}
+              style={styles.photoScroll}>
+              {photos.map((pUri, pIdx) => (
+                <View key={`preview_p_${pIdx}`} style={styles.photoSlide}>
+                  <Image source={{ uri: pUri }} style={styles.photoImage} resizeMode="cover" />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <Image
+              source={{ uri: photos[0] || uri }}
+              style={styles.photoImage}
+              resizeMode="cover"
+            />
+          )}
 
           {/* Sound / Audio Toggle Button (Top-Left) */}
           <Pressable
@@ -253,6 +290,16 @@ export default function CameraPreviewScreen() {
               color="#FFFFFF"
             />
           </Pressable>
+
+          {/* Album Badge Indicator (Top-Right) */}
+          {photos.length > 1 && (
+            <View style={styles.albumBadge}>
+              <Ionicons name="images" size={13} color="#FFFFFF" />
+              <Text style={styles.albumBadgeText}>
+                {activePhotoIndex + 1}/{photos.length}
+              </Text>
+            </View>
+          )}
 
           {/* Interactive Caption Pill (Bottom-Center of Photo) */}
           <Pressable
@@ -289,28 +336,11 @@ export default function CameraPreviewScreen() {
           </Pressable>
         </View>
 
-        {/* Pagination / History Dots */}
-        <View style={styles.paginationDotsRow}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
-        </View>
-
-        {/* Upload Status / Error message if any */}
+        {/* Error message if any */}
         {uploadError && (
           <View style={styles.errorToast}>
             <Ionicons name="alert-circle" size={16} color="#FF6B6B" />
             <Text style={styles.errorToastText}>{uploadError}</Text>
-          </View>
-        )}
-        {isUploading && (
-          <View style={styles.uploadingToast}>
-            <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-            <Text style={styles.uploadingToastText}>{uploadStage}</Text>
           </View>
         )}
 
@@ -324,19 +354,23 @@ export default function CameraPreviewScreen() {
             <Ionicons name="close" size={32} color="#FFFFFF" />
           </Pressable>
 
-          {/* Center Send Button */}
+          {/* Center Send Button with discreet loading inside button */}
           <Animated.View style={{ transform: [{ scale: sendButtonScale }] }}>
             <Pressable
               onPress={handleSendMoment}
               disabled={isUploading}
-              style={[styles.sendButton, isUploading && { opacity: 0.8 }]}
+              style={[styles.sendButton, isUploading && { opacity: 0.85 }]}
               accessibilityLabel="Gửi khoảnh khắc">
-              <Ionicons
-                name="send"
-                size={28}
-                color="#FFFFFF"
-                style={{ transform: [{ rotate: '-25deg' }, { translateX: 2 }] }}
-              />
+              {isUploading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="send"
+                  size={28}
+                  color="#FFFFFF"
+                  style={{ transform: [{ rotate: '-25deg' }, { translateX: 2 }] }}
+                />
+              )}
             </Pressable>
           </Animated.View>
 
@@ -480,10 +514,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   photoCard: {
-    width: SCREEN_WIDTH - 36,
-    height: SCREEN_WIDTH - 36,
-    maxWidth: 390,
-    maxHeight: 390,
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
     borderRadius: 44, // Locket signature large squircle curvature
     overflow: 'hidden',
     position: 'relative',
@@ -493,6 +525,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 20,
     elevation: 10,
+    marginBottom: 20,
+  },
+  photoScroll: {
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
+  },
+  photoSlide: {
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
   },
   photoImage: {
     width: '100%',
@@ -508,11 +549,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26, 92, 224, 0.72)', // Locket blue sound button
     alignItems: 'center',
     justifyContent: 'center',
-    backdropFilter: 'blur(8px)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+    zIndex: 10,
+  },
+  albumBadge: {
+    position: 'absolute',
+    top: 18,
+    right: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 10,
+  },
+  albumBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   captionPill: {
     position: 'absolute',
@@ -529,6 +588,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
+    zIndex: 10,
   },
   captionText: {
     fontSize: 15,
@@ -542,26 +602,6 @@ const styles = StyleSheet.create({
     minWidth: 140,
     padding: 0,
     margin: 0,
-  },
-  paginationDotsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    marginTop: 18,
-    marginBottom: 14,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  dotActive: {
-    backgroundColor: '#FFFFFF',
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
   },
   actionControlsRow: {
     width: '100%',
@@ -700,19 +740,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 6,
-  },
-  uploadingToast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 10,
-  },
-  uploadingToastText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
   },
 });

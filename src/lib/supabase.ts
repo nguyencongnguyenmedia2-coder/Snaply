@@ -34,6 +34,7 @@ export type Moment = {
   owner_id: string;
   caption: string | null;
   media_url: string;
+  media_urls?: string[];
   created_at: string;
   group_id?: string | null;
   group_name?: string | null;

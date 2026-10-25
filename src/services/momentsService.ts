@@ -109,20 +109,14 @@ export async function getFeedMoments(userId?: string): Promise<Moment[]> {
         // Resolve private media URLs with secure signed URLs and memory caching
         const momentsWithSignedUrls = await Promise.all(
           data.map(async (item: any) => {
-            let resolvedUrl = item.media_url;
-            if (resolvedUrl && !resolvedUrl.startsWith('http')) {
-              try {
-                resolvedUrl = await getSignedPhotoUrl(resolvedUrl, 300);
-              } catch (signErr) {
-                console.warn('Signed URL resolution fallback:', signErr);
-              }
-            }
+            const { resolvedMediaUrl, resolvedList } = await resolveMomentMediaUrls(item.media_url);
 
             return {
               id: item.id,
               owner_id: item.owner_id,
               caption: item.caption,
-              media_url: resolvedUrl,
+              media_url: resolvedMediaUrl,
+              media_urls: resolvedList,
               created_at: item.created_at,
               group_id: item.group_id,
               group_name: item.groups?.name || null,
@@ -140,15 +134,70 @@ export async function getFeedMoments(userId?: string): Promise<Moment[]> {
     // Local / fallback store
     const stored = await AsyncStorage.getItem(LOCAL_MOMENTS_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed: Moment[] = JSON.parse(stored);
+      return parsed.map((m) => ({
+        ...m,
+        media_urls: m.media_urls || parseMomentMediaUrls(m.media_url),
+      }));
     } else {
-      await AsyncStorage.setItem(LOCAL_MOMENTS_KEY, JSON.stringify(INITIAL_MOMENTS));
-      return INITIAL_MOMENTS;
+      const initialized = INITIAL_MOMENTS.map((m) => ({
+        ...m,
+        media_urls: parseMomentMediaUrls(m.media_url),
+      }));
+      await AsyncStorage.setItem(LOCAL_MOMENTS_KEY, JSON.stringify(initialized));
+      return initialized;
     }
   } catch (err) {
     console.warn('Error fetching feed moments:', err);
     return INITIAL_MOMENTS;
   }
+}
+
+export function parseMomentMediaUrls(mediaUrl?: string | null): string[] {
+  if (!mediaUrl) return [];
+  const trimmed = mediaUrl.trim();
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s) => String(s)).filter(Boolean);
+      }
+    } catch {}
+  }
+  if (trimmed.includes('||')) {
+    return trimmed.split('||').map((s) => s.trim()).filter(Boolean);
+  }
+  return [trimmed];
+}
+
+async function resolveMomentMediaUrls(rawMediaUrl: string): Promise<{ resolvedMediaUrl: string; resolvedList: string[] }> {
+  const urls = parseMomentMediaUrls(rawMediaUrl);
+  if (urls.length === 0) return { resolvedMediaUrl: rawMediaUrl, resolvedList: [] };
+
+  const resolvedList = await Promise.all(
+    urls.map(async (u) => {
+      if (
+        u &&
+        !u.startsWith('http') &&
+        !u.startsWith('data:') &&
+        !u.startsWith('blob:') &&
+        !u.startsWith('file:') &&
+        !u.startsWith('ph:') &&
+        !u.startsWith('content:')
+      ) {
+        try {
+          return await getSignedPhotoUrl(u, 300);
+        } catch (err) {
+          console.warn('Signed URL resolution fallback:', err);
+          return u;
+        }
+      }
+      return u;
+    })
+  );
+
+  const resolvedMediaUrl = resolvedList.length > 1 ? JSON.stringify(resolvedList) : (resolvedList[0] || rawMediaUrl);
+  return { resolvedMediaUrl, resolvedList };
 }
 
 export async function uploadMomentMedia(
@@ -188,7 +237,8 @@ export async function uploadMomentMedia(
 
 export async function createMoment(params: {
   userId: string;
-  mediaUri: string;
+  mediaUri?: string;
+  mediaUris?: string[];
   caption?: string;
   groupId?: string;
   recipientIds?: string[];
@@ -198,13 +248,32 @@ export async function createMoment(params: {
     avatar_url: string | null;
   };
 }): Promise<Moment> {
-  const uploadedUrl = await uploadMomentMedia(params.mediaUri, params.userId);
+  // Support both single mediaUri and multi-image mediaUris
+  const inputUris: string[] =
+    params.mediaUris && params.mediaUris.length > 0
+      ? params.mediaUris
+      : params.mediaUri
+      ? [params.mediaUri]
+      : [];
+
+  if (inputUris.length === 0) {
+    throw new Error('Cần ít nhất một ảnh để tạo khoảnh khắc');
+  }
+
+  // Upload all photos in parallel
+  const uploadedUrls = await Promise.all(
+    inputUris.map((uri) => uploadMomentMedia(uri, params.userId))
+  );
+
+  const storedMediaUrl =
+    uploadedUrls.length > 1 ? JSON.stringify(uploadedUrls) : uploadedUrls[0];
 
   const newMoment: Moment = {
     id: `moment_${Date.now()}`,
     owner_id: params.userId,
     caption: params.caption || null,
-    media_url: uploadedUrl,
+    media_url: storedMediaUrl,
+    media_urls: uploadedUrls,
     created_at: new Date().toISOString(),
     group_id: params.groupId || null,
     group_name: params.groupId ? 'Private Group' : null,
@@ -224,7 +293,7 @@ export async function createMoment(params: {
       .insert({
         owner_id: params.userId,
         caption: params.caption,
-        media_url: uploadedUrl,
+        media_url: storedMediaUrl,
         group_id: params.groupId || null,
       })
       .select()

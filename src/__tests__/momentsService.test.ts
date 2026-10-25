@@ -75,4 +75,29 @@ describe('momentsService Integration & Unit Tests', () => {
     const found = feed.find((m) => m.id === created.id);
     expect(found).toBeUndefined();
   });
+
+  it('creates a multi-photo album moment and parses album media_urls correctly', async () => {
+    const albumMoment = await createMoment({
+      userId: 'album-user-1',
+      mediaUris: [
+        'file:///local/photo1.jpg',
+        'file:///local/photo2.jpg',
+        'file:///local/photo3.jpg',
+      ],
+      caption: 'Weekend trip album 🚗📸',
+    });
+
+    expect(albumMoment).toBeDefined();
+    expect(albumMoment.media_urls).toHaveLength(3);
+    expect(albumMoment.media_urls).toEqual([
+      'file:///local/photo1.jpg',
+      'file:///local/photo2.jpg',
+      'file:///local/photo3.jpg',
+    ]);
+
+    const feed = await getFeedMoments('album-user-1');
+    const savedAlbum = feed.find((m) => m.id === albumMoment.id);
+    expect(savedAlbum).toBeDefined();
+    expect(savedAlbum?.media_urls).toHaveLength(3);
+  });
 });

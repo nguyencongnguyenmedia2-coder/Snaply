@@ -450,6 +450,7 @@ export default function HomeFeedScreen() {
                 avatar_url: item.owner?.avatar_url,
               }}
               imageUrl={item.media_url}
+              mediaUrls={item.media_urls}
               caption={item.caption}
               createdAt={item.created_at}
               groupName={item.group_name}

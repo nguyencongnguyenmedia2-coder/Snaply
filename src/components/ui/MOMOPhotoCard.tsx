@@ -7,6 +7,9 @@ import {
   Dimensions,
   Platform,
   ViewStyle,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
 import { MOMOAvatar } from './MOMOAvatar';
 import { MOMOReactionBar } from './MOMOReactionBar';
+import { parseMomentMediaUrls } from '@/services/momentsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -28,6 +32,7 @@ export interface MOMOPhotoCardProps {
   id: string;
   author: MomentAuthor;
   imageUrl: string;
+  mediaUrls?: string[];
   caption?: string | null;
   createdAt: string;
   groupName?: string | null;
@@ -44,6 +49,7 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
   id,
   author,
   imageUrl,
+  mediaUrls,
   caption,
   createdAt,
   groupName,
@@ -58,6 +64,13 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
   const { colors, radii, spacing, typography, shadows } = useTheme();
   const lastTapRef = useRef<number>(0);
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+  const photos =
+    mediaUrls && mediaUrls.length > 0
+      ? mediaUrls
+      : parseMomentMediaUrls(imageUrl);
+  const isAlbum = photos.length > 1;
 
   const handleDoubleTap = () => {
     const now = Date.now();
@@ -167,20 +180,111 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
         )}
       </View>
 
-      {/* Photo with double-tap gesture */}
-      <Pressable onPress={handleDoubleTap} style={{ position: 'relative' }}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={{
-            width: '100%',
-            height: imageHeight,
-            backgroundColor: colors.surfaceMuted,
-          }}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          transition={200}
-        />
+      {/* Photo / Album Carousel with double-tap gesture */}
+      <View style={{ position: 'relative', width: '100%', height: imageHeight }}>
+        {isAlbum ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+              const offsetX = e.nativeEvent.contentOffset.x;
+              const page = Math.round(offsetX / cardWidth);
+              if (page >= 0 && page < photos.length) {
+                setActivePhotoIndex(page);
+              }
+            }}
+            style={{ width: '100%', height: imageHeight }}>
+            {photos.map((photoUri, index) => (
+              <Pressable
+                key={`${id}_photo_${index}`}
+                onPress={handleDoubleTap}
+                style={{ width: cardWidth, height: imageHeight }}>
+                <Image
+                  source={{ uri: photoUri }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: colors.surfaceMuted,
+                  }}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <Pressable onPress={handleDoubleTap} style={{ width: '100%', height: '100%' }}>
+            <Image
+              source={{ uri: photos[0] || imageUrl }}
+              style={{
+                width: '100%',
+                height: '100%',
+                backgroundColor: colors.surfaceMuted,
+              }}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+            />
+          </Pressable>
+        )}
 
+        {/* Album Badge Indicator (Top Right) */}
+        {isAlbum && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: radii.full,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}>
+            <Ionicons name="images" size={13} color="#FFFFFF" />
+            <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>
+              {activePhotoIndex + 1}/{photos.length}
+            </Text>
+          </View>
+        )}
+
+        {/* Album Carousel Dots (Bottom Center) */}
+        {isAlbum && (
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              left: 0,
+              right: 0,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            pointerEvents="none">
+            {photos.map((_, dotIdx) => (
+              <View
+                key={`dot_${dotIdx}`}
+                style={{
+                  width: dotIdx === activePhotoIndex ? 16 : 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor:
+                    dotIdx === activePhotoIndex
+                      ? '#FFFFFF'
+                      : 'rgba(255, 255, 255, 0.45)',
+                }}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Heart Overlay for Double Tap */}
         {showHeartOverlay && (
           <View
             style={[
@@ -190,11 +294,12 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
                 justifyContent: 'center',
                 backgroundColor: 'rgba(0,0,0,0.2)',
               },
-            ]}>
+            ]}
+            pointerEvents="none">
             <Text style={{ fontSize: 72 }}>❤️</Text>
           </View>
         )}
-      </Pressable>
+      </View>
 
       {/* Caption & Reactions */}
       <View style={{ padding: spacing.md }}>
