@@ -1,16 +1,10 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Moment } from '@/lib/supabase';
+import { MOMOWidgetSnapshot } from '@/widgets/types';
+import MOMOLatestWidget from '@/widgets/MOMOLatestWidget';
 
-export interface WidgetSnapshotData {
-  latestMomentId: string;
-  imageUrl: string;
-  authorName: string;
-  authorUsername: string;
-  caption?: string | null;
-  updatedAt: string;
-  deepLink: string;
-}
+export type WidgetSnapshotData = MOMOWidgetSnapshot;
 
 const WIDGET_DATA_KEY = '@momo_widget_snapshot';
 const WIDGET_PREFS_KEY = '@momo_widget_preferences';
@@ -27,6 +21,17 @@ export const DEFAULT_WIDGET_PREFS: WidgetPreferences = {
   theme: 'system',
   photoFraming: 'fill',
 };
+
+function formatTimeAgo(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
 
 export async function getWidgetPreferences(): Promise<WidgetPreferences> {
   try {
@@ -45,32 +50,50 @@ export async function saveWidgetPreferences(
 export async function updateWidgetMomentsSnapshot(
   moments: Moment[]
 ): Promise<void> {
-  if (!moments || moments.length === 0) return;
+  let snapshot: MOMOWidgetSnapshot;
 
-  const latest = moments[0];
-  const snapshot: WidgetSnapshotData = {
-    latestMomentId: latest.id,
-    imageUrl: latest.media_url,
-    authorName: latest.owner?.display_name || 'Friend',
-    authorUsername: latest.owner?.username || 'friend',
-    caption: latest.caption,
-    updatedAt: new Date().toISOString(),
-    deepLink: `momo://moment/${latest.id}`,
-  };
+  if (!moments || moments.length === 0) {
+    snapshot = {
+      momentId: '',
+      latestMomentId: '',
+      authorName: 'MOMO Friends',
+      authorUsername: 'momo',
+      caption: 'Waiting for new moments...',
+      timeAgo: 'Just now',
+      photoUrl: '',
+      imageUrl: '',
+      deepLink: 'momo://',
+      hasUnseen: false,
+      isEmpty: true,
+    };
+  } else {
+    const latest = moments[0];
+    snapshot = {
+      momentId: latest.id,
+      latestMomentId: latest.id,
+      authorName: latest.owner?.display_name || 'Friend',
+      authorUsername: latest.owner?.username || 'friend',
+      caption: latest.caption || '',
+      timeAgo: formatTimeAgo(latest.created_at),
+      photoUrl: latest.media_url,
+      imageUrl: latest.media_url,
+      deepLink: `momo://moment/${latest.id}`,
+      hasUnseen: false,
+      isEmpty: false,
+    };
+  }
 
   try {
+    // 1. Cache snapshot locally in AsyncStorage
     await AsyncStorage.setItem(WIDGET_DATA_KEY, JSON.stringify(snapshot));
 
-    // If native widget bridge is available:
+    // 2. Transmit snapshot to isolated native widget runtime
     if (Platform.OS === 'ios' || Platform.OS === 'android') {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const ExpoWidgets = require('expo-widgets');
-        if (ExpoWidgets && typeof ExpoWidgets.setWidgetData === 'function') {
-          await ExpoWidgets.setWidgetData('MOMOLatestWidget', snapshot);
-        }
-      } catch {
-        // Native module active in custom development client
+        MOMOLatestWidget.updateSnapshot(snapshot);
+      } catch (nativeErr) {
+        // Safe catch if running in Expo Go before development build is generated
+        console.warn('Native widget snapshot update deferred:', nativeErr);
       }
     }
   } catch (err) {

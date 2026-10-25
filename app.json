@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "momo",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.momo.moments",
@@ -66,7 +65,33 @@
           "color": "#FF806E"
         }
       ],
-      "expo-widgets"
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.momo.moments.widgets",
+          "groupIdentifier": "group.com.momo.moments",
+          "enableAndroid": true,
+          "widgets": [
+            {
+              "name": "MOMOLatestWidget",
+              "displayName": "MOMO Latest Moment",
+              "description": "See the latest intimate photo moment from your friends.",
+              "ios": {
+                "supportedFamilies": ["systemSmall", "systemMedium"],
+                "initialLayout": "src/widgets/MOMOLatestWidget.ios.tsx"
+              },
+              "android": {
+                "targetCellWidth": 2,
+                "targetCellHeight": 2,
+                "minWidth": 160,
+                "minHeight": 110,
+                "resizeMode": "both",
+                "initialLayout": "src/widgets/MOMOLatestWidget.android.tsx"
+              }
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

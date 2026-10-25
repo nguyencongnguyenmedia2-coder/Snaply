@@ -66,7 +66,7 @@ export default function HomeFeedScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     loadData();
