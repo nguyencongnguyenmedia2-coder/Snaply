@@ -260,11 +260,20 @@ export default function UserProfileScreen() {
           {/* Action Button */}
           <View style={{ width: '100%', marginTop: spacing.lg }}>
             {isFriend ? (
-              <MOMOButton
-                title="Gửi khoảnh khắc cho bạn"
-                icon={<Ionicons name="camera" size={18} color="#FFFFFF" />}
-                onPress={() => router.push('/(tabs)/camera')}
-              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <MOMOButton
+                  title="Nhắn tin 💬"
+                  variant="primary"
+                  onPress={() => router.push({ pathname: '/chat/[id]', params: { id: targetUser.id, type: 'direct' } })}
+                  style={{ flex: 1 }}
+                />
+                <MOMOButton
+                  title="Gửi ảnh 📸"
+                  variant="secondary"
+                  onPress={() => router.push('/(tabs)/camera')}
+                  style={{ flex: 1 }}
+                />
+              </View>
             ) : relationship === 'pending' ? (
               <MOMOButton
                 title="Đã gửi lời mời kết bạn"

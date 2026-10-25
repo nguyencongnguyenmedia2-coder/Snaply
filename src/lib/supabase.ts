@@ -115,3 +115,28 @@ export type PhotoDeletionJob = {
   created_at: string;
   updated_at: string;
 };
+
+export type Message = {
+  id: string;
+  sender_id: string;
+  receiver_id?: string | null;
+  group_id?: string | null;
+  content: string | null;
+  media_url?: string | null;
+  reply_to_id?: string | null;
+  reply_to?: Message | null;
+  reactions?: Record<string, number>;
+  user_reaction?: string | null;
+  created_at: string;
+  sender?: Profile;
+  status?: 'sending' | 'sent' | 'error';
+};
+
+export type GroupMember = {
+  id: string;
+  group_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member';
+  created_at: string;
+  profile?: Profile;
+};

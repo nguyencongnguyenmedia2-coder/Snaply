@@ -191,9 +191,9 @@ export default function FriendsScreen() {
               marginBottom: spacing.sm,
             }}>
             <Text style={[typography.caption, { color: colors.textSecondary, fontWeight: '700' }]}>
-              NHÓM RIÊNG TƯ
+              NHÓM NHẮN TIN & CHIA SẺ
             </Text>
-            <Pressable onPress={() => setCreateGroupVisible(true)}>
+            <Pressable onPress={() => router.push('/group/create')}>
               <Text style={[typography.caption, { color: colors.coral, fontWeight: '700' }]}>
                 + Tạo nhóm mới
               </Text>
@@ -204,7 +204,7 @@ export default function FriendsScreen() {
             {groups.map((group) => (
               <Pressable
                 key={group.id}
-                onPress={() => router.push(`/group/${group.id}` as any)}
+                onPress={() => router.push({ pathname: '/chat/[id]', params: { id: group.id, type: 'group' } })}
                 style={{
                   backgroundColor: colors.surface,
                   borderRadius: radii.xl,
@@ -212,7 +212,7 @@ export default function FriendsScreen() {
                   marginRight: spacing.md,
                   borderWidth: 1,
                   borderColor: colors.border,
-                  width: 140,
+                  width: 146,
                   alignItems: 'center',
                 }}>
                 <View
@@ -225,7 +225,7 @@ export default function FriendsScreen() {
                     justifyContent: 'center',
                     marginBottom: spacing.sm,
                   }}>
-                  <Ionicons name="people" size={26} color={colors.blush} />
+                  <Ionicons name="chatbubbles" size={24} color={colors.coral} />
                 </View>
                 <Text
                   style={[typography.callout, { fontWeight: '700', color: colors.text, textAlign: 'center' }]}
@@ -235,6 +235,11 @@ export default function FriendsScreen() {
                 <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
                   {group.member_count || 1} thành viên
                 </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                  <Text style={[typography.caption, { color: colors.coral, fontWeight: '700', fontSize: 11 }]}>
+                    Nhắn tin ➔
+                  </Text>
+                </View>
               </Pressable>
             ))}
           </ScrollView>
@@ -291,13 +296,22 @@ export default function FriendsScreen() {
                 )}
               </View>
 
-              <MOMOIconButton
-                icon={<Ionicons name="camera-outline" size={20} color={colors.coral} />}
-                onPress={() => router.push('/(tabs)/camera')}
-                accessibilityLabel={`Gửi khoảnh khắc cho ${friend.display_name}`}
-                variant="subtle"
-                size={38}
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <MOMOIconButton
+                  icon={<Ionicons name="chatbubble-ellipses-outline" size={19} color={colors.coral} />}
+                  onPress={() => router.push({ pathname: '/chat/[id]', params: { id: friend.id, type: 'direct' } })}
+                  accessibilityLabel={`Nhắn tin với ${friend.display_name}`}
+                  variant="subtle"
+                  size={36}
+                />
+                <MOMOIconButton
+                  icon={<Ionicons name="camera-outline" size={19} color={colors.coral} />}
+                  onPress={() => router.push('/(tabs)/camera')}
+                  accessibilityLabel={`Gửi khoảnh khắc cho ${friend.display_name}`}
+                  variant="subtle"
+                  size={36}
+                />
+              </View>
             </Pressable>
           ))}
         </View>

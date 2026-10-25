@@ -63,6 +63,14 @@ export default function RootLayout() {
               name="user/[id]"
               options={{ headerShown: false }}
             />
+            <Stack.Screen
+              name="chat/[id]"
+              options={{ headerShown: false, animation: 'slide_from_right' }}
+            />
+            <Stack.Screen
+              name="group/create"
+              options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
           </Stack>
           <SnaplyWelcomeIntro />
         </AuthProvider>
