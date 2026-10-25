@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (!email.trim()) {
-      setError('Please enter your account email.');
+      setError('Vui lòng nhập địa chỉ email tài khoản.');
       return;
     }
 
@@ -36,7 +36,7 @@ export default function ForgotPasswordScreen() {
       }
       setSent(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset link.');
+      setError(err.message || 'Không thể gửi liên kết khôi phục.');
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Reset Password" />
+      <MOMOHeader showBack title="Đặt lại mật khẩu" />
 
       <ScrollView
         contentContainerStyle={{
@@ -72,7 +72,7 @@ export default function ForgotPasswordScreen() {
                 typography.title2,
                 { color: colors.text, fontWeight: '800', textAlign: 'center', marginBottom: spacing.xs },
               ]}>
-              Check Your Inbox
+              Kiểm tra hộp thư đến
             </Text>
 
             <Text
@@ -80,11 +80,11 @@ export default function ForgotPasswordScreen() {
                 typography.body,
                 { color: colors.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: spacing.xxl },
               ]}>
-              We sent a password recovery link to {email}. Follow the instructions to reset your password.
+              Chúng mình đã gửi liên kết khôi phục mật khẩu đến {email}. Hãy làm theo hướng dẫn trong email để tạo mật khẩu mới.
             </Text>
 
             <MOMOButton
-              title="Back to Sign In"
+              title="Quay lại Đăng nhập"
               onPress={() => router.replace('/auth/sign-in')}
               variant="primary"
               size="lg"
@@ -98,12 +98,12 @@ export default function ForgotPasswordScreen() {
                 typography.body,
                 { color: colors.textSecondary, marginBottom: spacing.xl, lineHeight: 22 },
               ]}>
-              Enter the email address associated with your MOMO account. We'll send you a secure link to reset your password.
+              Nhập địa chỉ email liên kết với tài khoản MOMO của bạn. Chúng mình sẽ gửi liên kết an toàn để đặt lại mật khẩu.
             </Text>
 
             <MOMOTextField
-              label="Email Address"
-              placeholder="you@example.com"
+              label="Địa chỉ Email"
+              placeholder="ban@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -113,7 +113,7 @@ export default function ForgotPasswordScreen() {
             />
 
             <MOMOButton
-              title="Send Recovery Link"
+              title="Gửi liên kết khôi phục"
               onPress={handleResetPassword}
               loading={loading}
               variant="primary"

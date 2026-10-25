@@ -74,7 +74,7 @@ export const MOMOReactionBar: React.FC<MOMOReactionBarProps> = ({
                 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel={`React with ${emoji}`}>
+              accessibilityLabel={`Thả cảm xúc ${emoji}`}>
               <Text style={{ fontSize: 20 }}>{emoji}</Text>
               {count > 0 && (
                 <Text
@@ -110,7 +110,7 @@ export const MOMOReactionBar: React.FC<MOMOReactionBarProps> = ({
             },
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Reply with a photo">
+          accessibilityLabel="Chụp ảnh phản hồi">
           <Ionicons name="camera" size={17} color="#FFFFFF" />
         </Pressable>
       )}

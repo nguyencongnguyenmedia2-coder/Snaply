@@ -19,26 +19,26 @@ const SAMPLE_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-1',
     type: 'moment',
-    title: 'Sarah Miller shared a new moment',
-    subtitle: 'Golden hour in the garden with the little one 🌸',
+    title: 'Bảo Ngọc vừa chia sẻ khoảnh khắc mới',
+    subtitle: 'Nắng chiều vàng rực rỡ ngoài hiên nhà 🌸',
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    timestamp: '15m ago',
+    timestamp: '15 phút trước',
   },
   {
     id: 'notif-2',
     type: 'reaction',
-    title: 'Leo Chen reacted ❤️ to your moment',
-    subtitle: 'Morning brew overlooking the hills',
+    title: 'Minh Quân đã thả tim ❤️ vào khoảnh khắc của bạn',
+    subtitle: 'Tách cà phê sớm trên đồi',
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400',
-    timestamp: '2h ago',
+    timestamp: '2 giờ trước',
   },
   {
     id: 'notif-3',
     type: 'friend',
-    title: 'Elena Vance sent you a friend request',
-    subtitle: 'Tap to review and add to your circle',
+    title: 'Thùy Chi đã gửi lời mời kết bạn',
+    subtitle: 'Chạm để xem và thêm vào nhóm bạn thân',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-    timestamp: '3h ago',
+    timestamp: '3 giờ trước',
   },
 ];
 
@@ -49,7 +49,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Notifications" />
+      <MOMOHeader showBack title="Thông báo" />
 
       <ScrollView
         contentContainerStyle={{

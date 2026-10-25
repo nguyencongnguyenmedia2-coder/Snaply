@@ -43,19 +43,19 @@ export default function FriendRequestsScreen() {
     if (!user) return;
     await acceptFriendRequest(req.id, user.id);
     setRequests((prev) => prev.filter((r) => r.id !== req.id));
-    setToastMessage(`You and ${req.sender?.display_name || 'friend'} are now friends! 🌸`);
+    setToastMessage(`Bạn và ${req.sender?.display_name || 'bạn bè'} đã trở thành bạn thân! 🌸`);
   };
 
   const handleDecline = async (req: FriendRequest) => {
     if (!user) return;
     await declineFriendRequest(req.id, user.id);
     setRequests((prev) => prev.filter((r) => r.id !== req.id));
-    setToastMessage('Friend request declined.');
+    setToastMessage('Đã từ chối lời mời kết bạn.');
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Friend Requests" />
+      <MOMOHeader showBack title="Lời mời kết bạn" />
 
       <ScrollView
         contentContainerStyle={{
@@ -72,9 +72,9 @@ export default function FriendRequestsScreen() {
         {requests.length === 0 ? (
           <MOMOEmptyState
             icon="checkmark-done-circle-outline"
-            title="All caught up!"
-            description="You have no pending friend requests at this time."
-            actionTitle="Find Friends"
+            title="Không có lời mời nào!"
+            description="Hiện tại bạn không có lời mời kết bạn nào đang chờ duyệt."
+            actionTitle="Tìm bạn bè mới"
             onAction={() => router.push('/search')}
             style={{ marginTop: spacing.xxxl }}
           />
@@ -98,7 +98,7 @@ export default function FriendRequestsScreen() {
                 />
                 <View style={{ marginLeft: spacing.md, flex: 1 }}>
                   <Text style={[typography.headline, { color: colors.text }]}>
-                    {req.sender?.display_name || 'Someone'}
+                    {req.sender?.display_name || 'Bạn bè'}
                   </Text>
                   <Text style={[typography.caption, { color: colors.textSecondary }]}>
                     @{req.sender?.username || 'user'}
@@ -108,14 +108,14 @@ export default function FriendRequestsScreen() {
 
               <View style={{ flexDirection: 'row', gap: spacing.md }}>
                 <MOMOButton
-                  title="Decline"
+                  title="Từ chối"
                   variant="outline"
                   size="sm"
                   onPress={() => handleDecline(req)}
                   style={{ flex: 1 }}
                 />
                 <MOMOButton
-                  title="Accept"
+                  title="Chấp nhận"
                   variant="primary"
                   size="sm"
                   onPress={() => handleAccept(req)}

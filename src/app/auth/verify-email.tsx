@@ -13,7 +13,7 @@ export default function VerifyEmailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Verify Email" />
+      <MOMOHeader showBack title="Xác thực Email" />
 
       <ScrollView
         contentContainerStyle={{
@@ -40,7 +40,7 @@ export default function VerifyEmailScreen() {
             typography.title2,
             { color: colors.text, fontWeight: '800', textAlign: 'center', marginBottom: spacing.xs },
           ]}>
-          Verification Sent!
+          Đã gửi thư xác nhận!
         </Text>
 
         <Text
@@ -53,11 +53,11 @@ export default function VerifyEmailScreen() {
               marginBottom: spacing.xxxl,
             },
           ]}>
-          Please check your email and click the confirmation link to activate your MOMO account.
+          Vui lòng kiểm tra hộp thư email của bạn và nhấn vào liên kết xác nhận để kích hoạt tài khoản MOMO.
         </Text>
 
         <MOMOButton
-          title="Proceed to Sign In"
+          title="Tiếp tục đến Đăng nhập"
           onPress={() => router.replace('/auth/sign-in')}
           variant="primary"
           size="lg"

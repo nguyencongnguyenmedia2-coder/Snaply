@@ -15,12 +15,12 @@ export default function PrivacySettingsScreen() {
 
   const toggleSetting = (name: string, setter: (val: boolean) => void, current: boolean) => {
     setter(!current);
-    setToastMessage(`${name} updated.`);
+    setToastMessage(`Đã cập nhật cài đặt ${name}.`);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Privacy Settings" />
+      <MOMOHeader showBack title="Quyền riêng tư & Bảo mật" />
 
       <ScrollView
         contentContainerStyle={{
@@ -32,7 +32,7 @@ export default function PrivacySettingsScreen() {
             typography.body,
             { color: colors.textSecondary, marginBottom: spacing.lg, lineHeight: 22 },
           ]}>
-          MOMO is designed around intimacy and private peer-to-peer sharing. You have complete control over who can discover you and view your moments.
+          MOMO được thiết kế xoay quanh tính riêng tư và chia sẻ gần gũi. Bạn có toàn quyền kiểm soát ai có thể nhìn thấy hồ sơ và khoảnh khắc của bạn.
         </Text>
 
         <View
@@ -53,14 +53,14 @@ export default function PrivacySettingsScreen() {
               borderBottomColor: colors.border,
             }}>
             <View style={{ flex: 1, marginRight: spacing.md }}>
-              <Text style={[typography.headline, { color: colors.text }]}>Private Circle Only</Text>
+              <Text style={[typography.headline, { color: colors.text }]}>Chỉ vòng bạn thân</Text>
               <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                Only approved friends can view moments you share.
+                Chỉ những bạn bè đã được duyệt mới xem được khoảnh khắc bạn đăng tải.
               </Text>
             </View>
             <Switch
               value={privateAccount}
-              onValueChange={() => toggleSetting('Privacy mode', setPrivateAccount, privateAccount)}
+              onValueChange={() => toggleSetting('Chế độ riêng tư', setPrivateAccount, privateAccount)}
               trackColor={{ false: colors.border, true: colors.coral }}
             />
           </View>
@@ -75,14 +75,14 @@ export default function PrivacySettingsScreen() {
               borderBottomColor: colors.border,
             }}>
             <View style={{ flex: 1, marginRight: spacing.md }}>
-              <Text style={[typography.headline, { color: colors.text }]}>Allow Widget Caching</Text>
+              <Text style={[typography.headline, { color: colors.text }]}>Cho phép hiển thị trên Widget bạn bè</Text>
               <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                Allow your moments to appear on authorized friends' home screens.
+                Khoảnh khắc mới của bạn sẽ xuất hiện trên widget màn hình chính của bạn thân.
               </Text>
             </View>
             <Switch
               value={allowWidgetSnapshots}
-              onValueChange={() => toggleSetting('Widget permission', setAllowWidgetSnapshots, allowWidgetSnapshots)}
+              onValueChange={() => toggleSetting('Hiển thị Widget', setAllowWidgetSnapshots, allowWidgetSnapshots)}
               trackColor={{ false: colors.border, true: colors.coral }}
             />
           </View>
@@ -95,14 +95,14 @@ export default function PrivacySettingsScreen() {
               padding: spacing.lg,
             }}>
             <View style={{ flex: 1, marginRight: spacing.md }}>
-              <Text style={[typography.headline, { color: colors.text }]}>Search by Email</Text>
+              <Text style={[typography.headline, { color: colors.text }]}>Tìm kiếm bằng Email</Text>
               <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                Allow friends to find your profile using your email address.
+                Cho phép bạn bè tìm thấy bạn bằng địa chỉ email.
               </Text>
             </View>
             <Switch
               value={allowSearchByEmail}
-              onValueChange={() => toggleSetting('Email searchability', setAllowSearchByEmail, allowSearchByEmail)}
+              onValueChange={() => toggleSetting('Tìm kiếm bằng Email', setAllowSearchByEmail, allowSearchByEmail)}
               trackColor={{ false: colors.border, true: colors.coral }}
             />
           </View>

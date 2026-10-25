@@ -20,13 +20,13 @@ export default function SupportScreen() {
       setSubmitting(false);
       setSubject('');
       setMessage('');
-      setToastMessage('Thank you! Your feedback has been sent to our team.');
+      setToastMessage('Cảm ơn bạn! Ý kiến đóng góp đã được gửi tới đội ngũ MOMO.');
     }, 1000);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Help & Support" />
+      <MOMOHeader showBack title="Trợ giúp & Hỗ trợ" />
 
       <ScrollView
         contentContainerStyle={{
@@ -34,19 +34,19 @@ export default function SupportScreen() {
           paddingBottom: insets.bottom + 80,
         }}>
         <Text style={[typography.body, { color: colors.textSecondary, marginBottom: spacing.lg, lineHeight: 22 }]}>
-          Have questions, thoughts, or need help with home-screen widgets? Send us a note and we'll be glad to help!
+          Bạn có câu hỏi, thắc mắc hoặc cần hỗ trợ về widget màn hình chính? Hãy gửi lời nhắn và chúng mình sẽ giải đáp ngay nhé!
         </Text>
 
         <MOMOTextField
-          label="Subject"
-          placeholder="e.g. Widget setup on iOS 18"
+          label="Chủ đề"
+          placeholder="Ví dụ: Thiết lập widget trên iOS 18"
           value={subject}
           onChangeText={setSubject}
         />
 
         <MOMOTextField
-          label="Message"
-          placeholder="Tell us what you experienced..."
+          label="Nội dung tin nhắn"
+          placeholder="Chia sẻ với chúng mình trải nghiệm của bạn..."
           value={message}
           onChangeText={setMessage}
           multiline
@@ -54,7 +54,7 @@ export default function SupportScreen() {
         />
 
         <MOMOButton
-          title="Send Feedback"
+          title="Gửi phản hồi"
           onPress={handleSubmit}
           loading={submitting}
           variant="primary"

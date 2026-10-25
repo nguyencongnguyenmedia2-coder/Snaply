@@ -16,14 +16,14 @@ import { useAuth } from '@/context/AuthContext';
 import { MOMOButton, MOMOTextField, MOMOHeader } from '@/components/ui';
 
 const SignUpSchema = z.object({
-  displayName: z.string().min(2, 'Name must be at least 2 characters'),
+  displayName: z.string().min(2, 'Tên hiển thị phải có ít nhất 2 ký tự'),
   username: z
     .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(20, 'Username cannot exceed 20 characters')
-    .regex(/^[a-z0-9_]+$/, 'Username can only contain lowercase letters, numbers, and underscores'),
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+    .min(3, 'Tên người dùng phải có ít nhất 3 ký tự')
+    .max(20, 'Tên người dùng không được vượt quá 20 ký tự')
+    .regex(/^[a-z0-9_]+$/, 'Tên người dùng chỉ gồm chữ cái thường, số và dấu gạch dưới'),
+  email: z.string().email('Vui lòng nhập địa chỉ email hợp lệ'),
+  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
 });
 
 export default function SignUpScreen() {
@@ -78,7 +78,7 @@ export default function SignUpScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Create Account" />
+      <MOMOHeader showBack title="Tạo tài khoản" />
 
       <ScrollView
         contentContainerStyle={{
@@ -92,7 +92,7 @@ export default function SignUpScreen() {
             typography.body,
             { color: colors.textSecondary, marginBottom: spacing.xl, lineHeight: 22 },
           ]}>
-          Join MOMO and start sharing quiet, authentic moments with the people who matter most.
+          Tham gia MOMO và bắt đầu chia sẻ những khoảnh khắc bình yên, gần gũi với người thân yêu nhất.
         </Text>
 
         {globalError && (
@@ -120,8 +120,8 @@ export default function SignUpScreen() {
         )}
 
         <MOMOTextField
-          label="Your Name"
-          placeholder="e.g. Mia Jenkins"
+          label="Tên của bạn"
+          placeholder="Ví dụ: Minh Thư"
           value={displayName}
           onChangeText={setDisplayName}
           error={errors.displayName}
@@ -129,8 +129,8 @@ export default function SignUpScreen() {
         />
 
         <MOMOTextField
-          label="Choose Username"
-          placeholder="e.g. mia_j"
+          label="Tên người dùng (Username)"
+          placeholder="Ví dụ: minh_thu"
           value={username}
           onChangeText={(val) => setUsername(val.toLowerCase())}
           autoCapitalize="none"
@@ -139,8 +139,8 @@ export default function SignUpScreen() {
         />
 
         <MOMOTextField
-          label="Email Address"
-          placeholder="you@example.com"
+          label="Địa chỉ Email"
+          placeholder="ban@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -150,7 +150,7 @@ export default function SignUpScreen() {
         />
 
         <MOMOTextField
-          label="Password"
+          label="Mật khẩu"
           placeholder="••••••••"
           secureTextEntry
           value={password}
@@ -160,7 +160,7 @@ export default function SignUpScreen() {
         />
 
         <MOMOButton
-          title="Create My Account"
+          title="Tạo tài khoản MOMO"
           onPress={handleSignUp}
           loading={isLoading}
           variant="primary"
@@ -175,11 +175,11 @@ export default function SignUpScreen() {
             alignItems: 'center',
           }}>
           <Text style={[typography.body, { color: colors.textSecondary }]}>
-            Already have an account?{' '}
+            Đã có tài khoản?{' '}
           </Text>
           <Pressable onPress={() => router.push('/auth/sign-in')}>
             <Text style={[typography.body, { color: colors.coral, fontWeight: '700' }]}>
-              Sign In
+              Đăng nhập
             </Text>
           </Pressable>
         </View>

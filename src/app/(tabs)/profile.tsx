@@ -45,7 +45,7 @@ export default function ProfileScreen() {
 
       if (!result.canceled && result.assets && result.assets[0].uri) {
         await updateProfile({ avatar_url: result.assets[0].uri });
-        setToastMessage('Profile photo updated ✨');
+        setToastMessage('Đã cập nhật ảnh đại diện ✨');
       }
     } catch (err) {
       console.warn('Avatar update failed:', err);
@@ -60,17 +60,17 @@ export default function ProfileScreen() {
     });
     setUpdating(false);
     setEditVisible(false);
-    setToastMessage('Profile details saved.');
+    setToastMessage('Đã lưu thông tin hồ sơ ✨');
   };
 
   const handleSignOut = async () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out of MOMO?',
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất khỏi MOMO?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: 'Đăng xuất',
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -84,7 +84,7 @@ export default function ProfileScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <MOMOHeader
-        title="My Profile"
+        title="Hồ sơ cá nhân"
         rightAction={
           <Pressable
             onPress={() => {
@@ -94,7 +94,7 @@ export default function ProfileScreen() {
             }}
             hitSlop={10}>
             <Text style={[typography.callout, { color: colors.coral, fontWeight: '700' }]}>
-              Edit
+              Sửa
             </Text>
           </Pressable>
         }
@@ -104,7 +104,8 @@ export default function ProfileScreen() {
         contentContainerStyle={{
           paddingHorizontal: spacing.lg,
           paddingBottom: insets.bottom + 80,
-        }}>
+        }}
+        showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
         <View
           style={{
@@ -120,7 +121,7 @@ export default function ProfileScreen() {
             onPress={handlePickAvatar}
             style={{ position: 'relative', marginBottom: spacing.md }}
             accessibilityRole="button"
-            accessibilityLabel="Change profile avatar">
+            accessibilityLabel="Đổi ảnh đại diện">
             <MOMOAvatar
               url={profile?.avatar_url}
               name={profile?.display_name}
@@ -145,7 +146,7 @@ export default function ProfileScreen() {
           </Pressable>
 
           <Text style={[typography.title2, { fontWeight: '800', color: colors.text }]}>
-            {profile?.display_name || 'Momo Friend'}
+            {profile?.display_name || 'Bạn bè MOMO'}
           </Text>
           <Text style={[typography.subhead, { color: colors.textSecondary, marginTop: 2 }]}>
             @{profile?.username || 'user'}
@@ -176,19 +177,19 @@ export default function ProfileScreen() {
               <Text style={[typography.title3, { fontWeight: '800', color: colors.coral }]}>
                 18
               </Text>
-              <Text style={[typography.caption, { color: colors.textSecondary }]}>Moments</Text>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>Khoảnh khắc</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
               <Text style={[typography.title3, { fontWeight: '800', color: colors.coral }]}>
                 12
               </Text>
-              <Text style={[typography.caption, { color: colors.textSecondary }]}>Close Friends</Text>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>Bạn thân</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
               <Text style={[typography.title3, { fontWeight: '800', color: colors.coral }]}>
                 3
               </Text>
-              <Text style={[typography.caption, { color: colors.textSecondary }]}>Circles</Text>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>Nhóm riêng</Text>
             </View>
           </View>
         </View>
@@ -220,10 +221,10 @@ export default function ProfileScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[typography.headline, { color: colors.coralDark, fontWeight: '700' }]}>
-              Home-Screen Widget
+              Widget màn hình chính
             </Text>
             <Text style={[typography.caption, { color: colors.textSecondary }]}>
-              Display your friends' latest real-time moments directly on your phone's home screen
+              Hiển thị ảnh mới nhất của bạn bè trực tiếp trên màn hình chính điện thoại
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.coral} />
@@ -250,7 +251,7 @@ export default function ProfileScreen() {
             }}>
             <Ionicons name="lock-closed-outline" size={20} color={colors.text} style={{ marginRight: spacing.md }} />
             <Text style={[typography.callout, { flex: 1, color: colors.text, fontWeight: '600' }]}>
-              Privacy & Permissions
+              Quyền riêng tư & Bảo mật
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -266,7 +267,7 @@ export default function ProfileScreen() {
             }}>
             <Ionicons name="diamond-outline" size={20} color={colors.coral} style={{ marginRight: spacing.md }} />
             <Text style={[typography.callout, { flex: 1, color: colors.text, fontWeight: '600' }]}>
-              MOMO+ Premium
+              MOMO+ Cao cấp
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -282,7 +283,7 @@ export default function ProfileScreen() {
             }}>
             <Ionicons name="cloud-outline" size={20} color={colors.text} style={{ marginRight: spacing.md }} />
             <Text style={[typography.callout, { flex: 1, color: colors.text, fontWeight: '600' }]}>
-              Media Storage & Cache
+              Dung lượng & Dữ liệu bộ nhớ
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -296,7 +297,7 @@ export default function ProfileScreen() {
             }}>
             <Ionicons name="help-buoy-outline" size={20} color={colors.text} style={{ marginRight: spacing.md }} />
             <Text style={[typography.callout, { flex: 1, color: colors.text, fontWeight: '600' }]}>
-              Help & Support
+              Trợ giúp & Hỗ trợ
             </Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -304,7 +305,7 @@ export default function ProfileScreen() {
 
         {/* Sign Out Button */}
         <MOMOButton
-          title="Sign Out"
+          title="Đăng xuất"
           onPress={handleSignOut}
           variant="outline"
           size="md"
@@ -317,22 +318,22 @@ export default function ProfileScreen() {
       <MOMOBottomSheet
         visible={editVisible}
         onClose={() => setEditVisible(false)}
-        title="Edit Profile">
+        title="Chỉnh sửa hồ sơ">
         <View style={{ paddingBottom: spacing.xl }}>
           <MOMOTextField
-            label="Display Name"
+            label="Tên hiển thị"
             value={displayNameInput}
             onChangeText={setDisplayNameInput}
           />
           <MOMOTextField
-            label="Bio"
+            label="Tiểu sử"
             value={bioInput}
             onChangeText={setBioInput}
             multiline
             numberOfLines={2}
           />
           <MOMOButton
-            title="Save Changes"
+            title="Lưu thay đổi"
             onPress={handleSaveProfile}
             loading={updating}
             variant="primary"

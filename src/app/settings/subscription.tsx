@@ -13,28 +13,28 @@ export default function SubscriptionScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const perks = [
-    'Unlimited home-screen widgets for friends & circles',
-    'Exclusive pastel widget frames & seasonal themes',
-    'Full resolution uncompressed memories vault',
-    'Extended monthly & annual memory video recaps',
-    'Priority customer support & early access features',
+    'Không giới hạn widget màn hình chính cho bạn bè & nhóm',
+    'Khung widget màu pastel độc quyền và chủ đề theo mùa',
+    'Kho lưu trữ kỷ niệm độ phân giải gốc không nén',
+    'Video điểm lại kỷ niệm hàng tháng & hàng năm mở rộng',
+    'Hỗ trợ khách hàng ưu tiên & trải nghiệm tính năng sớm nhất',
   ];
 
   const handleSubscribe = () => {
     setIsSubscribing(true);
     setTimeout(() => {
       setIsSubscribing(false);
-      setToastMessage('Welcome to MOMO+! Entitlements unlocked ✨');
+      setToastMessage('Chào mừng bạn đến với MOMO+! Đã mở khóa quyền lợi ✨');
     }, 1200);
   };
 
   const handleRestore = () => {
-    setToastMessage('Purchases checked. No prior subscription found.');
+    setToastMessage('Đã kiểm tra gói mua. Không tìm thấy gói đăng ký trước đó.');
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="MOMO+ Premium" />
+      <MOMOHeader showBack title="MOMO+ Cao cấp" />
 
       <ScrollView
         contentContainerStyle={{
@@ -66,19 +66,19 @@ export default function SubscriptionScreen() {
           </View>
 
           <Text style={[typography.title2, { fontWeight: '800', color: colors.text, textAlign: 'center' }]}>
-            Little moments, enhanced.
+            Khoảnh khắc nhỏ, trọn vẹn hơn.
           </Text>
           <Text
             style={[
               typography.subhead,
               { color: colors.textSecondary, textAlign: 'center', marginTop: 4, lineHeight: 20 },
             ]}>
-            Unlock custom widget designs, unlimited intimate circles, and full archival storage.
+            Mở khóa thiết kế widget tùy biến, nhóm riêng tư không giới hạn và kho lưu trữ kỷ niệm vĩnh viễn.
           </Text>
 
           <View style={{ marginTop: spacing.lg, alignItems: 'center' }}>
             <Text style={[typography.title1, { color: colors.coral, fontWeight: '900' }]}>
-              $2.99 <Text style={[typography.subhead, { color: colors.textSecondary }]}>/ month</Text>
+              69.000 đ <Text style={[typography.subhead, { color: colors.textSecondary }]}>/ tháng</Text>
             </Text>
           </View>
         </View>
@@ -86,7 +86,7 @@ export default function SubscriptionScreen() {
         {/* Perks List */}
         <View style={{ marginBottom: spacing.xl }}>
           <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' }]}>
-            WHAT'S INCLUDED IN MOMO+
+            QUYỀN LỢI ĐẶC BIỆT CỦA MOMO+
           </Text>
 
           {perks.map((perk, i) => (
@@ -110,7 +110,7 @@ export default function SubscriptionScreen() {
 
         {/* Subscribe & Restore Buttons */}
         <MOMOButton
-          title="Upgrade to MOMO+"
+          title="Nâng cấp lên MOMO+"
           onPress={handleSubscribe}
           loading={isSubscribing}
           variant="primary"
@@ -119,7 +119,7 @@ export default function SubscriptionScreen() {
         />
 
         <MOMOButton
-          title="Restore Purchases"
+          title="Khôi phục gói đã mua"
           onPress={handleRestore}
           variant="ghost"
           size="md"

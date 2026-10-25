@@ -90,7 +90,7 @@ export default function FriendsScreen() {
     } else {
       setAddFriendVisible(false);
       setUsernameInput('');
-      setToastMessage(`Friend request sent to @${usernameInput.trim()} ✨`);
+      setToastMessage(`Đã gửi lời mời kết bạn đến @${usernameInput.trim()} ✨`);
     }
   };
 
@@ -101,27 +101,27 @@ export default function FriendsScreen() {
     setGroupLoading(false);
     setCreateGroupVisible(false);
     setGroupNameInput('');
-    setToastMessage('Group created successfully!');
+    setToastMessage('Tạo nhóm riêng thành công ✨');
     loadData();
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <MOMOHeader
-        title="Friends & Circles"
+        title="Bạn bè & Nhóm riêng"
         rightAction={
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <MOMOIconButton
               icon={<Ionicons name="search" size={20} color={colors.text} />}
               onPress={() => router.push('/search')}
-              accessibilityLabel="Search"
+              accessibilityLabel="Tìm kiếm"
               size={38}
               style={{ marginRight: spacing.xs }}
             />
             <MOMOIconButton
               icon={<Ionicons name="person-add" size={19} color={colors.coral} />}
               onPress={() => setAddFriendVisible(true)}
-              accessibilityLabel="Add Friend"
+              accessibilityLabel="Thêm bạn"
               size={38}
             />
           </View>
@@ -171,10 +171,10 @@ export default function FriendsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[typography.headline, { color: colors.coralDark, fontWeight: '700' }]}>
-                {requests.length} Friend {requests.length === 1 ? 'Request' : 'Requests'}
+                {requests.length} Lời mời kết bạn
               </Text>
               <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                Tap to review and accept
+                Chạm để xem và chấp nhận
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.coral} />
@@ -191,11 +191,11 @@ export default function FriendsScreen() {
               marginBottom: spacing.sm,
             }}>
             <Text style={[typography.caption, { color: colors.textSecondary, fontWeight: '700' }]}>
-              PRIVATE GROUPS
+              NHÓM RIÊNG TƯ
             </Text>
             <Pressable onPress={() => setCreateGroupVisible(true)}>
               <Text style={[typography.caption, { color: colors.coral, fontWeight: '700' }]}>
-                + New Group
+                + Tạo nhóm mới
               </Text>
             </Pressable>
           </View>
@@ -233,7 +233,7 @@ export default function FriendsScreen() {
                   {group.name}
                 </Text>
                 <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-                  {group.member_count || 1} friends
+                  {group.member_count || 1} thành viên
                 </Text>
               </Pressable>
             ))}
@@ -247,7 +247,7 @@ export default function FriendsScreen() {
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
             ]}>
-            YOUR INTIMATE CIRCLE ({friends.length})
+            BẠN THÂN ({friends.length})
           </Text>
 
           {friends.map((friend, index) => (
@@ -292,7 +292,7 @@ export default function FriendsScreen() {
               <MOMOIconButton
                 icon={<Ionicons name="camera-outline" size={20} color={colors.coral} />}
                 onPress={() => router.push('/(tabs)/camera')}
-                accessibilityLabel={`Send moment to ${friend.display_name}`}
+                accessibilityLabel={`Gửi khoảnh khắc cho ${friend.display_name}`}
                 variant="subtle"
                 size={38}
               />
@@ -305,15 +305,15 @@ export default function FriendsScreen() {
       <MOMOBottomSheet
         visible={addFriendVisible}
         onClose={() => setAddFriendVisible(false)}
-        title="Add Close Friend">
+        title="Thêm bạn thân">
         <View style={{ paddingBottom: spacing.xl }}>
           <Text style={[typography.body, { color: colors.textSecondary, marginBottom: spacing.md }]}>
-            Enter your friend's unique MOMO username to invite them to your circle.
+            Nhập username MOMO của bạn bè để gửi lời mời kết nối vào vòng bạn thân.
           </Text>
 
           <MOMOTextField
-            label="Username"
-            placeholder="e.g. sarah_m"
+            label="Tên người dùng (Username)"
+            placeholder="Ví dụ: nguyen_momo"
             value={usernameInput}
             onChangeText={setUsernameInput}
             autoCapitalize="none"
@@ -322,7 +322,7 @@ export default function FriendsScreen() {
           />
 
           <MOMOButton
-            title="Send Friend Request"
+            title="Gửi lời mời kết bạn"
             onPress={handleSendFriendRequest}
             loading={addLoading}
             variant="primary"
@@ -336,21 +336,21 @@ export default function FriendsScreen() {
       <MOMOBottomSheet
         visible={createGroupVisible}
         onClose={() => setCreateGroupVisible(false)}
-        title="Create Private Circle">
+        title="Tạo nhóm riêng tư">
         <View style={{ paddingBottom: spacing.xl }}>
           <Text style={[typography.body, { color: colors.textSecondary, marginBottom: spacing.md }]}>
-            Create a private shared circle (e.g. "Roommates", "Family", "Besties") for group moments.
+            Tạo một nhóm chia sẻ riêng tư (như "Gia đình", "Bạn thân", "Cạ cứng") cho các khoảnh khắc chung.
           </Text>
 
           <MOMOTextField
-            label="Circle Name"
-            placeholder="e.g. Sunday Coffee Club"
+            label="Tên nhóm"
+            placeholder="Ví dụ: Hội cà phê cuối tuần"
             value={groupNameInput}
             onChangeText={setGroupNameInput}
           />
 
           <MOMOButton
-            title="Create Circle"
+            title="Tạo nhóm"
             onPress={handleCreateGroup}
             loading={groupLoading}
             variant="primary"

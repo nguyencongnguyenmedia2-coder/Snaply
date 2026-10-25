@@ -68,18 +68,18 @@ export default function WidgetConfigScreen() {
     setSaving(true);
     await saveWidgetPreferences(prefs);
     setSaving(false);
-    setToastMessage('Widget preferences saved & updated ✨');
+    setToastMessage('Đã lưu & đồng bộ Widget thành công ✨');
   };
 
   const previewImage =
     snapshot?.imageUrl ||
     'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80';
 
-  const previewAuthor = snapshot?.authorName || 'Sarah Miller';
+  const previewAuthor = snapshot?.authorName || 'Bảo Ngọc';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Home-Screen Widget" />
+      <MOMOHeader showBack title="Widget màn hình chính" />
 
       <ScrollView
         contentContainerStyle={{
@@ -93,7 +93,7 @@ export default function WidgetConfigScreen() {
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
             ]}>
-            HOME-SCREEN PREVIEW
+            XEM TRƯỚC TRÊN MÀN HÌNH CHÍNH
           </Text>
 
           <View
@@ -140,7 +140,7 @@ export default function WidgetConfigScreen() {
                     fontWeight: '600',
                   },
                 ]}>
-                Little moments 🌸
+                Khoảnh khắc nhỏ 🌸
               </Text>
             </View>
           </View>
@@ -153,7 +153,7 @@ export default function WidgetConfigScreen() {
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
             ]}>
-            WIDGET CONTENT
+            NỘI DUNG HIỂN THỊ TRÊN WIDGET
           </Text>
 
           <View
@@ -165,10 +165,10 @@ export default function WidgetConfigScreen() {
               overflow: 'hidden',
             }}>
             {[
-              { id: 'latest', title: 'Latest Shared Moment', desc: 'Updates whenever any friend shares a moment' },
-              { id: 'friend', title: 'Specific Friend', desc: 'Lock widget to moments from one friend' },
-              { id: 'group', title: 'Private Circle', desc: 'Show moments shared in a selected group' },
-              { id: 'memory', title: 'Random Past Memory', desc: 'Surprise nostalgic memories from this day' },
+              { id: 'latest', title: 'Khoảnh khắc mới nhất', desc: 'Luôn cập nhật khi bất kỳ bạn thân nào chia sẻ ảnh' },
+              { id: 'friend', title: 'Bạn thân cụ thể', desc: 'Cố định widget chỉ nhận ảnh từ một người bạn' },
+              { id: 'group', title: 'Nhóm riêng tư', desc: 'Chỉ hiển thị ảnh được chia sẻ trong nhóm đã chọn' },
+              { id: 'memory', title: 'Kỷ niệm ngẫu nhiên', desc: 'Bất ngờ gợi nhớ lại kỷ niệm ấm áp trong ngày này' },
             ].map((variantItem, idx) => {
               const isSelected = prefs.variant === variantItem.id;
               return (
@@ -216,14 +216,14 @@ export default function WidgetConfigScreen() {
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
             ]}>
-            PHOTO FRAMING
+            KIỂU KHUNG ẢNH
           </Text>
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
             {[
-              { id: 'fill', label: 'Full Fill' },
-              { id: 'fit', label: 'Aspect Fit' },
-              { id: 'rounded', label: 'Soft Pill' },
+              { id: 'fill', label: 'Tràn viền (Fill)' },
+              { id: 'fit', label: 'Vừa vặn (Fit)' },
+              { id: 'rounded', label: 'Bo tròn (Pill)' },
             ].map((frame) => {
               const isSelected = prefs.photoFraming === frame.id;
               return (
@@ -268,18 +268,18 @@ export default function WidgetConfigScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
             <Ionicons name="information-circle-outline" size={20} color={colors.coral} style={{ marginRight: spacing.xs }} />
             <Text style={[typography.headline, { color: colors.text, fontWeight: '700' }]}>
-              How to add MOMO to Home Screen
+              Cách thêm Widget MOMO lên màn hình chính
             </Text>
           </View>
           <Text style={[typography.footnote, { color: colors.textSecondary, lineHeight: 20 }]}>
-            • On iOS: Long-press your home screen, tap (+) in top corner, search "MOMO", and choose your preferred widget size.{'\n'}
-            • On Android: Long-press home screen, select "Widgets", drag MOMO Moment Frame to your screen.
+            • Trên iPhone (iOS): Nhấn giữ màn hình chính, chạm dấu (+) ở góc trên, tìm "MOMO" và chọn kích cỡ widget bạn thích.{'\n'}
+            • Trên Android: Nhấn giữ khoảng trống màn hình chính, chọn "Tiện ích (Widgets)", kéo khung ảnh MOMO ra màn hình.
           </Text>
         </View>
 
         {/* Save Changes Button */}
         <MOMOButton
-          title="Save & Sync Widget"
+          title="Lưu & Đồng bộ Widget"
           onPress={handleSave}
           loading={saving}
           variant="primary"

@@ -18,24 +18,24 @@ export default function ReportScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const reasons = [
-    { id: 'inappropriate', label: 'Inappropriate or explicit photo' },
-    { id: 'harassment', label: 'Harassment or bullying' },
-    { id: 'spam', label: 'Spam or unwanted advertising' },
-    { id: 'privacy', label: 'Privacy violation or non-consensual image' },
+    { id: 'inappropriate', label: 'Hình ảnh không phù hợp hoặc nhạy cảm' },
+    { id: 'harassment', label: 'Quấy rối hoặc bắt nạt' },
+    { id: 'spam', label: 'Spam hoặc quảng cáo không mong muốn' },
+    { id: 'privacy', label: 'Vi phạm quyền riêng tư hoặc chưa có sự đồng ý' },
   ];
 
   const handleSubmit = () => {
     setSubmitting(true);
     setTimeout(() => {
       setSubmitting(false);
-      setToastMessage('Report submitted. We take privacy and safety seriously.');
+      setToastMessage('Đã gửi báo cáo. Chúng tôi luôn ưu tiên an toàn và sự riêng tư.');
       setTimeout(() => router.back(), 1500);
     }, 900);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Report Content" />
+      <MOMOHeader showBack title="Báo cáo nội dung" />
 
       <ScrollView
         contentContainerStyle={{
@@ -43,7 +43,7 @@ export default function ReportScreen() {
           paddingBottom: insets.bottom + 80,
         }}>
         <Text style={[typography.body, { color: colors.textSecondary, marginBottom: spacing.lg, lineHeight: 22 }]}>
-          Please select the reason for reporting this moment. Our team reviews all reports immediately to keep MOMO safe and intimate.
+          Vui lòng chọn lý do báo cáo khoảnh khắc này. Đội ngũ quản trị sẽ xem xét ngay để giữ cho MOMO luôn an toàn và thân thiện.
         </Text>
 
         <View
@@ -82,8 +82,8 @@ export default function ReportScreen() {
         </View>
 
         <MOMOTextField
-          label="Additional Details (Optional)"
-          placeholder="Provide more context if necessary..."
+          label="Thông tin chi tiết thêm (Không bắt buộc)"
+          placeholder="Mô tả cụ thể vấn đề nếu cần..."
           value={details}
           onChangeText={setDetails}
           multiline
@@ -91,7 +91,7 @@ export default function ReportScreen() {
         />
 
         <MOMOButton
-          title="Submit Report"
+          title="Gửi báo cáo"
           onPress={handleSubmit}
           loading={submitting}
           variant="danger"

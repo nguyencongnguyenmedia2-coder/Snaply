@@ -151,7 +151,7 @@ export default function HomeFeedScreen() {
     setSheetVisible(false);
     await deleteMoment(activeMoment.id, user.id);
     setMoments((prev) => prev.filter((m) => m.id !== activeMoment.id));
-    setToastMessage('Moment deleted from feed.');
+    setToastMessage('Đã xóa khoảnh khắc khỏi bảng tin.');
   };
 
   const filteredMoments = moments.filter((m) => {
@@ -184,7 +184,7 @@ export default function HomeFeedScreen() {
               typography.caption,
               { color: colors.textSecondary, fontWeight: '600' },
             ]}>
-            Little moments, closer together.
+            Khoảnh khắc nhỏ, gắn kết hơn.
           </Text>
         </View>
 
@@ -192,7 +192,7 @@ export default function HomeFeedScreen() {
           <MOMOIconButton
             icon={<Ionicons name="sparkles" size={19} color={colors.coral} />}
             onPress={() => router.push('/widget-config')}
-            accessibilityLabel="Widget Settings"
+            accessibilityLabel="Cài đặt Widget"
             size={38}
             style={{ marginRight: spacing.sm }}
           />
@@ -200,7 +200,7 @@ export default function HomeFeedScreen() {
           <MOMOIconButton
             icon={<Ionicons name="notifications-outline" size={20} color={colors.text} />}
             onPress={() => router.push('/notifications')}
-            accessibilityLabel="Notifications"
+            accessibilityLabel="Thông báo"
             size={38}
           />
         </View>
@@ -220,7 +220,7 @@ export default function HomeFeedScreen() {
             onPress={() => router.push('/(tabs)/camera')}
             style={{ alignItems: 'center', marginRight: spacing.md }}
             accessibilityRole="button"
-            accessibilityLabel="Add moment">
+            accessibilityLabel="Chụp khoảnh khắc">
             <View
               style={{
                 width: 52,
@@ -241,7 +241,7 @@ export default function HomeFeedScreen() {
                 typography.caption,
                 { color: colors.text, fontWeight: '600' },
               ]}>
-              Your moment
+              Khoảnh khắc
             </Text>
           </Pressable>
 
@@ -252,7 +252,7 @@ export default function HomeFeedScreen() {
               onPress={() => router.push('/(tabs)/friends')}
               style={{ alignItems: 'center', marginRight: spacing.md }}
               accessibilityRole="button"
-              accessibilityLabel={`View ${friend.display_name}'s moments`}>
+              accessibilityLabel={`Xem khoảnh khắc của ${friend.display_name}`}>
               <MOMOAvatar
                 url={friend.avatar_url}
                 name={friend.display_name}
@@ -304,7 +304,7 @@ export default function HomeFeedScreen() {
                   color: selectedFilter === 'all' ? '#FFFFFF' : colors.text,
                 },
               ]}>
-              All Friends
+              Tất cả bạn bè
             </Text>
           </Pressable>
 
@@ -348,9 +348,9 @@ export default function HomeFeedScreen() {
       ) : filteredMoments.length === 0 ? (
         <MOMOEmptyState
           icon="camera-outline"
-          title="No moments yet"
-          description="Be the first to share an intimate snapshot with your circle or add close friends."
-          actionTitle="Capture a Moment"
+          title="Chưa có khoảnh khắc nào"
+          description="Hãy là người đầu tiên chia sẻ khoảnh khắc với bạn bè hoặc thêm bạn thân mới."
+          actionTitle="Chụp khoảnh khắc ngay"
           onAction={() => router.push('/(tabs)/camera')}
           style={{ marginTop: spacing.xxl }}
         />
@@ -402,18 +402,18 @@ export default function HomeFeedScreen() {
       <MOMOBottomSheet
         visible={sheetVisible}
         onClose={() => setSheetVisible(false)}
-        title="Moment Options">
+        title="Tùy chọn khoảnh khắc">
         <View style={{ paddingBottom: spacing.xl }}>
           {activeMoment?.owner_id === user?.id ? (
             <MOMOButton
-              title="Delete This Moment"
+              title="Xóa khoảnh khắc này"
               variant="danger"
               onPress={handleDeleteActiveMoment}
               style={{ marginBottom: spacing.md }}
             />
           ) : (
             <MOMOButton
-              title="Report Inappropriate Content"
+              title="Báo cáo nội dung không phù hợp"
               variant="outline"
               onPress={() => {
                 setSheetVisible(false);
@@ -427,17 +427,17 @@ export default function HomeFeedScreen() {
           )}
 
           <MOMOButton
-            title="Save to My Memories"
+            title="Lưu vào Kỷ niệm cá nhân"
             variant="secondary"
             onPress={() => {
               setSheetVisible(false);
-              setToastMessage('Saved to personal memories ✨');
+              setToastMessage('Đã lưu vào kỷ niệm cá nhân ✨');
             }}
             style={{ marginBottom: spacing.md }}
           />
 
           <MOMOButton
-            title="Configure Home-Screen Widget"
+            title="Cài đặt Widget màn hình chính"
             variant="ghost"
             onPress={() => {
               setSheetVisible(false);

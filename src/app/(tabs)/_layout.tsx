@@ -41,7 +41,7 @@ export default function TabsLayout() {
         name="index"
         listeners={{ tabPress: handleTabPress }}
         options={{
-          title: 'Moments',
+          title: 'Khoảnh khắc',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'heart' : 'heart-outline'}
@@ -56,7 +56,7 @@ export default function TabsLayout() {
         name="friends"
         listeners={{ tabPress: handleTabPress }}
         options={{
-          title: 'Friends',
+          title: 'Bạn bè',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'people' : 'people-outline'}
@@ -97,7 +97,7 @@ export default function TabsLayout() {
         name="memories"
         listeners={{ tabPress: handleTabPress }}
         options={{
-          title: 'Memories',
+          title: 'Kỷ niệm',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'images' : 'images-outline'}
@@ -112,7 +112,7 @@ export default function TabsLayout() {
         name="profile"
         listeners={{ tabPress: handleTabPress }}
         options={{
-          title: 'Profile',
+          title: 'Cá nhân',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'person' : 'person-outline'}

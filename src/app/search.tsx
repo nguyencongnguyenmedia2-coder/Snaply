@@ -27,11 +27,11 @@ export default function SearchScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Find Friends" />
+      <MOMOHeader showBack title="Tìm bạn bè" />
 
       <View style={{ paddingHorizontal: spacing.lg }}>
         <MOMOTextField
-          placeholder="Search by name or @username..."
+          placeholder="Tìm theo tên hoặc @username..."
           value={query}
           onChangeText={setQuery}
           leftIcon={<Ionicons name="search" size={18} color={colors.textSecondary} />}
@@ -62,7 +62,7 @@ export default function SearchScreen() {
               <Text style={[typography.caption, { color: colors.textSecondary }]}>@{user.username}</Text>
             </View>
             <MOMOButton
-              title="Add"
+              title="Kết bạn"
               variant="secondary"
               size="sm"
               onPress={() => router.back()}

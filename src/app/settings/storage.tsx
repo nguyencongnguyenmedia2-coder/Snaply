@@ -11,12 +11,12 @@ export default function StorageScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const handleClearCache = () => {
-    setToastMessage('Image cache cleared successfully.');
+    setToastMessage('Đã dọn dẹp sạch bộ nhớ đệm ảnh.');
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title="Storage & Cache" />
+      <MOMOHeader showBack title="Dung lượng & Dữ liệu bộ nhớ" />
 
       <ScrollView
         contentContainerStyle={{
@@ -33,23 +33,23 @@ export default function StorageScreen() {
             borderColor: colors.border,
           }}>
           <Text style={[typography.headline, { color: colors.text, marginBottom: spacing.xs }]}>
-            Local Device Storage
+            Bộ nhớ thiết bị cục bộ
           </Text>
           <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: spacing.lg }]}>
-            Moments and widgets are cached locally to provide instant offline viewing and home-screen responsiveness.
+            Khoảnh khắc và widget được lưu đệm trên máy để xem nhanh khi mất mạng và phản hồi tức thì trên màn hình chính.
           </Text>
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm }}>
-            <Text style={[typography.callout, { color: colors.text }]}>Photo Cache</Text>
+            <Text style={[typography.callout, { color: colors.text }]}>Bộ nhớ đệm ảnh</Text>
             <Text style={[typography.callout, { fontWeight: '700', color: colors.coral }]}>14.2 MB</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.lg }}>
-            <Text style={[typography.callout, { color: colors.text }]}>Widget Snapshots</Text>
+            <Text style={[typography.callout, { color: colors.text }]}>Ảnh chụp Widget</Text>
             <Text style={[typography.callout, { fontWeight: '700', color: colors.coral }]}>1.8 MB</Text>
           </View>
 
           <MOMOButton
-            title="Clear Photo Cache"
+            title="Xóa bộ nhớ đệm ảnh"
             onPress={handleClearCache}
             variant="outline"
             size="md"

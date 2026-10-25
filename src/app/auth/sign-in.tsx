@@ -26,14 +26,14 @@ export default function SignInScreen() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      setErrorMessage('Please fill in both email and password.');
+      setErrorMessage('Vui lòng nhập cả email và mật khẩu.');
       return;
     }
 
     setErrorMessage(null);
     const { error } = await signIn(email.trim(), password);
     if (error) {
-      setErrorMessage(error.message || 'Invalid email or password.');
+      setErrorMessage(error.message || 'Email hoặc mật khẩu không chính xác.');
     } else {
       router.replace('/(tabs)');
     }
@@ -86,7 +86,7 @@ export default function SignInScreen() {
               typography.callout,
               { color: colors.textSecondary, marginTop: 4, fontWeight: '500' },
             ]}>
-            Little moments, closer together.
+            Khoảnh khắc nhỏ, gắn kết hơn.
           </Text>
         </View>
 
@@ -117,8 +117,8 @@ export default function SignInScreen() {
 
         {/* Inputs */}
         <MOMOTextField
-          label="Email Address"
-          placeholder="you@example.com"
+          label="Địa chỉ Email"
+          placeholder="ban@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -127,7 +127,7 @@ export default function SignInScreen() {
         />
 
         <MOMOTextField
-          label="Password"
+          label="Mật khẩu"
           placeholder="••••••••"
           secureTextEntry
           value={password}
@@ -139,12 +139,12 @@ export default function SignInScreen() {
           onPress={() => router.push('/auth/forgot-password')}
           style={{ alignSelf: 'flex-end', marginBottom: spacing.xl }}>
           <Text style={[typography.caption, { color: colors.coral, fontWeight: '700' }]}>
-            Forgot Password?
+            Quên mật khẩu?
           </Text>
         </Pressable>
 
         <MOMOButton
-          title="Sign In"
+          title="Đăng nhập"
           onPress={handleSignIn}
           loading={isLoading}
           variant="primary"
@@ -153,7 +153,7 @@ export default function SignInScreen() {
         />
 
         <MOMOButton
-          title="Quick Demo Sign In"
+          title="Đăng nhập nhanh tài khoản mẫu"
           onPress={handleDemoSignIn}
           variant="secondary"
           size="md"
@@ -168,11 +168,11 @@ export default function SignInScreen() {
             alignItems: 'center',
           }}>
           <Text style={[typography.body, { color: colors.textSecondary }]}>
-            Don't have an account yet?{' '}
+            Chưa có tài khoản?{' '}
           </Text>
           <Pressable onPress={() => router.push('/auth/sign-up')}>
             <Text style={[typography.body, { color: colors.coral, fontWeight: '700' }]}>
-              Sign Up
+              Đăng ký ngay
             </Text>
           </Pressable>
         </View>

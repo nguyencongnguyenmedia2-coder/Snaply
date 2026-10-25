@@ -113,12 +113,12 @@ export default function CameraPreviewScreen() {
         <MOMOIconButton
           icon={<Ionicons name="close" size={24} color={colors.text} />}
           onPress={() => router.back()}
-          accessibilityLabel="Discard"
+          accessibilityLabel="Hủy ảnh"
           size={40}
         />
 
         <Text style={[typography.title3, { fontWeight: '700', color: colors.text }]}>
-          New Moment
+          Khoảnh khắc mới
         </Text>
 
         <Pressable
@@ -140,10 +140,10 @@ export default function CameraPreviewScreen() {
               { fontWeight: '700', color: colors.coral, marginLeft: 4 },
             ]}>
             {selectedGroupId
-              ? groups.find((g) => g.id === selectedGroupId)?.name || 'Group'
+              ? groups.find((g) => g.id === selectedGroupId)?.name || 'Nhóm'
               : selectedRecipients.length > 0
-              ? `${selectedRecipients.length} friends`
-              : 'All Friends'}
+              ? `${selectedRecipients.length} bạn bè`
+              : 'Tất cả bạn bè'}
           </Text>
         </Pressable>
       </View>
@@ -190,7 +190,7 @@ export default function CameraPreviewScreen() {
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.xs, fontWeight: '600' },
             ]}>
-            WARM PASTEL FILTERS
+            BỘ LỌC PASTEL ẤM ÁP
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {COLOR_FILTERS.map((filter) => {
@@ -235,7 +235,7 @@ export default function CameraPreviewScreen() {
             marginBottom: spacing.xl,
           }}>
           <TextInput
-            placeholder="Add a sweet caption for your friends..."
+            placeholder="Thêm lời nhắn yêu thương gửi đến bạn bè..."
             placeholderTextColor={colors.textSecondary + '99'}
             value={caption}
             onChangeText={setCaption}
@@ -250,7 +250,7 @@ export default function CameraPreviewScreen() {
 
         {/* Share Button */}
         <MOMOButton
-          title={isUploading ? 'Sharing to Friends & Widgets...' : 'Share Moment ✨'}
+          title={isUploading ? 'Đang gửi đến bạn bè & Widget...' : 'Chia sẻ khoảnh khắc ✨'}
           onPress={handleShare}
           loading={isUploading}
           variant="primary"
@@ -263,14 +263,14 @@ export default function CameraPreviewScreen() {
       <MOMOBottomSheet
         visible={sheetVisible}
         onClose={() => setSheetVisible(false)}
-        title="Who Can See This Moment?">
+        title="Ai có thể xem khoảnh khắc này?">
         <View style={{ paddingBottom: spacing.xl }}>
           <Text
             style={[
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
             ]}>
-            AUDIENCE PRESETS
+            CHẾ ĐỘ CHIA SẺ
           </Text>
 
           <Pressable
@@ -298,9 +298,9 @@ export default function CameraPreviewScreen() {
               <Ionicons name="earth" size={20} color={colors.coral} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[typography.headline, { color: colors.text }]}>All Friends</Text>
+              <Text style={[typography.headline, { color: colors.text }]}>Tất cả bạn bè</Text>
               <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                Visible to everyone in your intimate circle
+                Hiển thị cho tất cả bạn bè trong danh sách thân thiết
               </Text>
             </View>
             {!selectedGroupId && selectedRecipients.length === 0 && (
@@ -340,7 +340,7 @@ export default function CameraPreviewScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[typography.headline, { color: colors.text }]}>{group.name}</Text>
                   <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                    Private group ({group.member_count || 1} members)
+                    Nhóm riêng ({group.member_count || 1} thành viên)
                   </Text>
                 </View>
                 {isGroupSelected && (
@@ -361,7 +361,7 @@ export default function CameraPreviewScreen() {
                 fontWeight: '700',
               },
             ]}>
-            OR SELECT SPECIFIC FRIENDS
+            HOẶC CHỌN TỪNG BẠN BÈ CỤ THỂ
           </Text>
 
           {friends.map((friend) => {
@@ -395,7 +395,7 @@ export default function CameraPreviewScreen() {
           })}
 
           <MOMOButton
-            title="Done"
+            title="Hoàn tất"
             onPress={() => setSheetVisible(false)}
             variant="primary"
             size="md"

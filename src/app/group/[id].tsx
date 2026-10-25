@@ -45,7 +45,7 @@ export default function GroupDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <MOMOHeader showBack title={group?.name || 'Circle'} />
+      <MOMOHeader showBack title={group?.name || 'Nhóm riêng'} />
 
       <ScrollView
         contentContainerStyle={{
@@ -76,10 +76,10 @@ export default function GroupDetailScreen() {
             <Ionicons name="people" size={36} color={colors.blush} />
           </View>
           <Text style={[typography.title2, { fontWeight: '800', color: colors.text }]}>
-            {group?.name || 'Circle'}
+            {group?.name || 'Nhóm riêng'}
           </Text>
           <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>
-            Private Shared Circle • {members.length} members
+            Nhóm chia sẻ riêng tư • {members.length} thành viên
           </Text>
 
           {/* Members row */}
@@ -90,7 +90,7 @@ export default function GroupDetailScreen() {
           </View>
 
           <MOMOButton
-            title="Share Moment to Circle"
+            title="Chụp khoảnh khắc vào nhóm"
             onPress={() => router.push('/(tabs)/camera')}
             variant="primary"
             size="md"
@@ -100,15 +100,15 @@ export default function GroupDetailScreen() {
 
         {/* Moments in this circle */}
         <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' }]}>
-          SHARED MOMENTS IN THIS CIRCLE
+          KHOẢNH KHẮC TRONG NHÓM NÀY
         </Text>
 
         {moments.length === 0 ? (
           <MOMOEmptyState
             icon="images-outline"
-            title="No group moments yet"
-            description="Take a quick photo and share it exclusively with this circle."
-            actionTitle="Take Photo"
+            title="Chưa có khoảnh khắc nhóm nào"
+            description="Chụp một bức ảnh nhanh và gửi riêng vào nhóm này."
+            actionTitle="Chụp ảnh ngay"
             onAction={() => router.push('/(tabs)/camera')}
           />
         ) : (

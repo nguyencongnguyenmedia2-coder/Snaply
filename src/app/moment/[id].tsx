@@ -72,9 +72,9 @@ export default function MomentDetailScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.xl, justifyContent: 'center' }}>
         <Text style={[typography.title3, { color: colors.text, textAlign: 'center' }]}>
-          Moment not found or you lack permission.
+          Không tìm thấy khoảnh khắc hoặc bạn không có quyền xem.
         </Text>
-        <MOMOButton title="Back to Feed" onPress={() => router.back()} style={{ marginTop: spacing.lg }} />
+        <MOMOButton title="Quay lại bảng tin" onPress={() => router.back()} style={{ marginTop: spacing.lg }} />
       </View>
     );
   }
@@ -83,11 +83,11 @@ export default function MomentDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <MOMOHeader
         showBack
-        title="Moment"
+        title="Khoảnh khắc"
         rightAction={
           moment.owner_id === user?.id ? (
             <MOMOButton
-              title="Delete"
+              title="Xóa"
               variant="ghost"
               size="sm"
               onPress={handleDelete}
@@ -95,7 +95,7 @@ export default function MomentDetailScreen() {
             />
           ) : (
             <MOMOButton
-              title="Report"
+              title="Báo cáo"
               variant="ghost"
               size="sm"
               onPress={() => router.push({ pathname: '/report', params: { momentId: moment.id } })}

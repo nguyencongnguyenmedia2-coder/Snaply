@@ -160,7 +160,7 @@ export default function CameraScreen() {
             typography.title2,
             { color: colors.text, textAlign: 'center', fontWeight: '800', marginBottom: spacing.xs },
           ]}>
-          Allow Camera Access
+          Cho phép truy cập Máy ảnh
         </Text>
 
         <Text
@@ -173,11 +173,11 @@ export default function CameraScreen() {
               marginBottom: spacing.xxl,
             },
           ]}>
-          MOMO captures authentic, intimate moments to share with your chosen circle and home-screen widgets.
+          MOMO ghi lại những khoảnh khắc chân thật, gần gũi để chia sẻ cùng bạn bè thân thiết và widget màn hình chính.
         </Text>
 
         <MOMOButton
-          title="Grant Camera Access"
+          title="Cho phép truy cập Máy ảnh"
           onPress={requestPermission}
           variant="primary"
           size="lg"
@@ -185,7 +185,7 @@ export default function CameraScreen() {
         />
 
         <MOMOButton
-          title="Select from Photo Library Instead"
+          title="Chọn ảnh từ Thư viện Album"
           onPress={pickFromGallery}
           variant="outline"
           size="md"
@@ -245,7 +245,7 @@ export default function CameraScreen() {
           <MOMOIconButton
             icon={<Ionicons name="close" size={26} color="#FFFFFF" />}
             onPress={() => router.push('/(tabs)')}
-            accessibilityLabel="Close Camera"
+            accessibilityLabel="Đóng máy ảnh"
             variant="glass"
             size={46}
           />
@@ -273,7 +273,7 @@ export default function CameraScreen() {
               />
             }
             onPress={toggleFlash}
-            accessibilityLabel="Toggle Flash"
+            accessibilityLabel="Bật tắt đèn Flash"
             variant="glass"
             size={46}
           />
@@ -299,8 +299,8 @@ export default function CameraScreen() {
               justifyContent: 'flex-end',
               paddingBottom: spacing.sm,
             }}>
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '600' }}>
-              Tap shutter or screen to snap
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' }}>
+              Chạm nút chụp hoặc khung ngắm để chụp
             </Text>
           </View>
         </Pressable>

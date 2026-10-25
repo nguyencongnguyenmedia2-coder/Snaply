@@ -66,12 +66,12 @@ export default function MemoriesScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <MOMOHeader
-        title="Memories"
+        title="Kỷ niệm"
         rightAction={
           <MOMOIconButton
             icon={<Ionicons name="sparkles-outline" size={20} color={colors.coral} />}
             onPress={() => router.push('/widget-config')}
-            accessibilityLabel="Widget settings"
+            accessibilityLabel="Cài đặt Widget"
             size={38}
           />
         }
@@ -115,14 +115,14 @@ export default function MemoriesScreen() {
                 marginBottom: spacing.xs,
               }}>
               <Text style={[typography.caption, { color: colors.coral, fontWeight: '700' }]}>
-                WEEKLY RECAP
+                ĐIỂM LẠI TUẦN NÀY
               </Text>
             </View>
             <Text style={[typography.title3, { fontWeight: '700', color: colors.text }]}>
-              Moments This Week
+              Khoảnh khắc tuần này
             </Text>
             <Text style={[typography.footnote, { color: colors.textSecondary, marginTop: 2 }]}>
-              {memories.length} warm memories captured with your close circle
+              {memories.length} khoảnh khắc ấm áp cùng vòng tròn bạn bè thân thiết
             </Text>
           </View>
 
@@ -149,11 +149,11 @@ export default function MemoriesScreen() {
               marginBottom: spacing.sm,
             }}>
             <Text style={[typography.caption, { color: colors.textSecondary, fontWeight: '700' }]}>
-              ALBUMS ({albums.length})
+              ALBUM CỦA BẠN ({albums.length})
             </Text>
             <Pressable onPress={() => setNewAlbumVisible(true)}>
               <Text style={[typography.caption, { color: colors.coral, fontWeight: '700' }]}>
-                + New Album
+                + Tạo album mới
               </Text>
             </Pressable>
           </View>
@@ -185,7 +185,7 @@ export default function MemoriesScreen() {
                   {album.title}
                 </Text>
                 <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                  {album.momentCount} moments
+                  {album.momentCount} khoảnh khắc
                 </Text>
               </View>
             ))}
@@ -199,7 +199,7 @@ export default function MemoriesScreen() {
               typography.caption,
               { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
             ]}>
-            ALL CHRONOLOGICAL MOMENTS ({memories.length})
+            TẤT CẢ KHOẢNH KHẮC THEO THỜI GIAN ({memories.length})
           </Text>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
@@ -229,16 +229,16 @@ export default function MemoriesScreen() {
       <MOMOBottomSheet
         visible={newAlbumVisible}
         onClose={() => setNewAlbumVisible(false)}
-        title="Create New Album">
+        title="Tạo album mới">
         <View style={{ paddingBottom: spacing.xl }}>
           <MOMOTextField
-            label="Album Title"
-            placeholder="e.g. Summer Roadtrips 🌊"
+            label="Tên album"
+            placeholder="Ví dụ: Chuyến đi mùa hè 🌊"
             value={albumTitle}
             onChangeText={setAlbumTitle}
           />
           <MOMOButton
-            title="Create Album"
+            title="Tạo album"
             onPress={handleCreateAlbum}
             variant="primary"
             size="lg"

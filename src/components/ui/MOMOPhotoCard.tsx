@@ -78,10 +78,10 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
   const getRelativeTime = (dateStr: string) => {
     try {
       const diffSec = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-      if (diffSec < 60) return 'Just now';
-      if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-      return `${Math.floor(diffSec / 86400)}d ago`;
+      if (diffSec < 60) return 'Vừa xong';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)} phút trước`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} giờ trước`;
+      return `${Math.floor(diffSec / 86400)} ngày trước`;
     } catch {
       return '';
     }
@@ -117,7 +117,7 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
           onPress={onPressAuthor}
           style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
           accessibilityRole="button"
-          accessibilityLabel={`View ${author.name}'s profile`}>
+          accessibilityLabel={`Xem hồ sơ của ${author.name}`}>
           <MOMOAvatar
             url={author.avatar_url}
             name={author.name}
@@ -161,7 +161,7 @@ export const MOMOPhotoCard: React.FC<MOMOPhotoCardProps> = ({
             onPress={onOptionsPress}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="Moment options">
+            accessibilityLabel="Tùy chọn khoảnh khắc">
             <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
           </Pressable>
         )}
