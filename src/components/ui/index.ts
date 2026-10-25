@@ -11,3 +11,4 @@ export * from './MOMOEmptyState';
 export * from './MOMOErrorState';
 export * from './MOMOToast';
 export * from './MOMOHeader';
+export * from './SnaplyWelcomeIntro';

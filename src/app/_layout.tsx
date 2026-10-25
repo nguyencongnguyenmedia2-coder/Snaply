@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useColorScheme } from 'react-native';
 import { AuthProvider } from '@/context/AuthContext';
 import { Colors } from '@/theme';
+import { SnaplyWelcomeIntro } from '@/components/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -58,7 +59,12 @@ export default function RootLayout() {
                 animation: 'slide_from_bottom',
               }}
             />
+            <Stack.Screen
+              name="user/[id]"
+              options={{ headerShown: false }}
+            />
           </Stack>
+          <SnaplyWelcomeIntro />
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
