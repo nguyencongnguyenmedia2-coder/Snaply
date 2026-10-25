@@ -161,6 +161,19 @@ export async function uploadMomentMedia(
     return uri;
   }
 
+  // If already a remote URL or already an uploaded storage object path (e.g. userId/uuid.jpg)
+  if (
+    uri.startsWith('http') ||
+    (uri.includes('/') &&
+      !uri.startsWith('file:') &&
+      !uri.startsWith('blob:') &&
+      !uri.startsWith('data:') &&
+      !uri.startsWith('ph:') &&
+      !uri.startsWith('content:'))
+  ) {
+    return uri;
+  }
+
   try {
     const photo = await uploadPhoto({
       localUri: uri,
