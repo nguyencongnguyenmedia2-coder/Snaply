@@ -14,8 +14,9 @@ interface AuthContextType {
     email: string,
     password: string,
     username: string,
-    displayName: string
-  ) => Promise<{ error: Error | null }>;
+    displayName: string,
+    avatarUrl?: string | null
+  ) => Promise<{ error: Error | null; requiresEmailConfirmation?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -196,62 +197,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     username: string,
-    displayName: string
-  ) => {
+    displayName: string,
+    avatarUrl?: string | null
+  ): Promise<{ error: Error | null; requiresEmailConfirmation?: boolean }> => {
     try {
       setIsLoading(true);
+      const cleanUsername = username.toLowerCase().trim();
+      const cleanDisplayName = displayName.trim();
+      const cleanEmail = email.toLowerCase().trim();
+
       if (isSupabaseConfigured) {
+        // 1. Kiểm tra xem username đã tồn tại chưa
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', cleanUsername)
+          .maybeSingle();
+
+        if (existingUser) {
+          throw new Error('Tên người dùng (username) này đã có người sử dụng. Vui lòng chọn tên khác.');
+        }
+
+        // 2. Gọi Supabase Auth SignUp
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
           options: {
             data: {
-              username,
-              display_name: displayName,
+              username: cleanUsername,
+              display_name: cleanDisplayName,
+              avatar_url: avatarUrl || null,
             },
           },
         });
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('already registered')) {
+            throw new Error('Địa chỉ email này đã được sử dụng. Vui lòng đăng nhập hoặc dùng email khác.');
+          }
+          throw error;
+        }
+
+        // Supabase nếu user đã tồn tại nhưng bảo mật ẩn danh
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error('Địa chỉ email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.');
+        }
+
+        const requiresConfirmation = !data.session;
 
         if (data.user) {
           try {
             await supabase.from('profiles').upsert({
               id: data.user.id,
-              username,
-              display_name: displayName,
-              avatar_url: null,
-              bio: null,
+              username: cleanUsername,
+              display_name: cleanDisplayName,
+              avatar_url: avatarUrl || null,
+              bio: '',
               updated_at: new Date().toISOString(),
             });
           } catch (profileErr) {
             console.warn('Profiles table sync deferred:', profileErr);
           }
+
           const createdProfile: Profile = {
             id: data.user.id,
-            username,
-            display_name: displayName,
-            avatar_url: null,
-            bio: null,
+            username: cleanUsername,
+            display_name: cleanDisplayName,
+            avatar_url: avatarUrl || null,
+            bio: '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
+
           setProfile(createdProfile);
           await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(createdProfile));
-          setUser(data.user);
-          await fetchProfile(data.user.id);
+
+          if (data.session) {
+            setSession(data.session);
+            setUser(data.user);
+            await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(data.user));
+          }
         }
-        return { error: null };
+        return { error: null, requiresEmailConfirmation: requiresConfirmation };
       } else {
         const newUser: User = {
           ...DEMO_USER,
           id: `user_${Date.now()}`,
-          email,
+          email: cleanEmail,
         };
         const newProf: Profile = {
           id: newUser.id,
-          username,
-          display_name: displayName,
-          avatar_url: null,
+          username: cleanUsername,
+          display_name: cleanDisplayName,
+          avatar_url: avatarUrl || null,
           bio: '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -260,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(newProf);
         await AsyncStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(newUser));
         await AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(newProf));
-        return { error: null };
+        return { error: null, requiresEmailConfirmation: false };
       }
     } catch (err: any) {
       return { error: err };
