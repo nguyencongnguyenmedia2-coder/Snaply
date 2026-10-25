@@ -61,7 +61,7 @@ USING (
     bucket_id IN ('snaply-photos', 'moments')
 );
 
--- 4. FIX PUBLIC.PHOTOS TABLE RLS (An toàn cho cả user thật và user demo)
+-- 4. FIX PUBLIC.PHOTOS TABLE RLS (Sử dụng UUID chuẩn xác)
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'photos') THEN
@@ -75,7 +75,6 @@ BEGIN
         WITH CHECK (
             auth.uid() = owner_id 
             OR auth.uid() IS NULL 
-            OR owner_id = 'demo-user-1234'
             OR EXISTS (SELECT 1 FROM public.profiles WHERE id = owner_id)
         );
 
@@ -87,7 +86,6 @@ BEGIN
         USING (
             auth.uid() = owner_id
             OR auth.uid() IS NULL
-            OR owner_id = 'demo-user-1234'
             OR deleted_at IS NULL
         );
     END IF;
