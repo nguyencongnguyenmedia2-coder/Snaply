@@ -311,6 +311,84 @@ export async function getPhotoDetail(photoId: string): Promise<Photo | null> {
 }
 
 /**
+ * Fetch all photos belonging to a specific user (protected by RLS: owner or accepted friend)
+ */
+export async function getUserPhotos(
+  targetUserId: string,
+  currentUserId?: string
+): Promise<Photo[]> {
+  try {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('photos')
+        .select(`
+          *,
+          owner:profiles!owner_id (id, username, display_name, avatar_url)
+        `)
+        .eq('owner_id', targetUserId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('[photoStorage] getUserPhotos Supabase error:', error);
+        return [];
+      }
+
+      if (data && data.length > 0) {
+        // Resolve thumbnail signed URLs in parallel with caching
+        const photosWithUrls = await Promise.all(
+          data.map(async (p: any) => {
+            const thumbUrl = await getSignedPhotoUrl(p.thumbnail_path);
+            return {
+              ...p,
+              thumbnail_url: thumbUrl,
+            } as Photo;
+          })
+        );
+        return photosWithUrls;
+      }
+    }
+
+    // Local / Mock fallback: check photos storage first
+    const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
+    const list: Photo[] = stored ? JSON.parse(stored) : [];
+    const userPhotos = list.filter((p) => p.owner_id === targetUserId && !p.deleted_at);
+    if (userPhotos.length > 0) return userPhotos;
+
+    // Fallback from moments
+    const momentsStored = await AsyncStorage.getItem('@momo_feed_moments');
+    if (momentsStored) {
+      const momentsList: any[] = JSON.parse(momentsStored);
+      const matched = momentsList.filter((m) => m.owner_id === targetUserId);
+      if (matched.length > 0) {
+        return matched.map((m) => ({
+          id: m.id,
+          owner_id: m.owner_id,
+          object_path: m.media_url,
+          thumbnail_path: m.media_url,
+          thumbnail_url: m.media_url,
+          main_url: m.media_url,
+          caption: m.caption,
+          mime_type: 'image/jpeg',
+          width: 1200,
+          height: 1500,
+          size_bytes: 300000,
+          thumbnail_size_bytes: 40000,
+          created_at: m.created_at,
+          deleted_at: null,
+          owner: m.owner,
+        }));
+      }
+    }
+
+    return [];
+  } catch (err) {
+    console.warn('[photoStorage] getUserPhotos error:', err);
+    return [];
+  }
+}
+
+/**
  * Safe, multi-step photo deletion with queue, storage cleanup, and resilience against missing files
  */
 export async function deletePhoto(photoId: string, ownerId: string): Promise<boolean> {

@@ -249,3 +249,117 @@ export async function createGroup(
   await AsyncStorage.setItem(LOCAL_GROUPS_KEY, JSON.stringify(updated));
   return newGroup;
 }
+
+/**
+ * Fetch a user's public profile by ID
+ */
+export async function getUserProfile(userId: string): Promise<Profile | null> {
+  try {
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!error && data) return data as Profile;
+    }
+
+    // Check local default friends or storage
+    const defaultFriend = DEFAULT_FRIENDS.find((f) => f.id === userId);
+    if (defaultFriend) return defaultFriend;
+
+    const stored = await AsyncStorage.getItem(LOCAL_FRIENDS_KEY);
+    if (stored) {
+      const list: Profile[] = JSON.parse(stored);
+      const found = list.find((p) => p.id === userId);
+      if (found) return found;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check friendship relationship status between two users
+ */
+export async function getFriendshipStatus(
+  currentUserId: string,
+  targetUserId: string
+): Promise<'accepted' | 'pending' | 'none' | 'self'> {
+  if (currentUserId === targetUserId) return 'self';
+
+  try {
+    if (isSupabaseConfigured) {
+      const low = currentUserId < targetUserId ? currentUserId : targetUserId;
+      const high = currentUserId < targetUserId ? targetUserId : currentUserId;
+
+      const { data } = await supabase
+        .from('friendships')
+        .select('status, requested_by')
+        .eq('user_low', low)
+        .eq('user_high', high)
+        .maybeSingle();
+
+      if (data) {
+        return data.status as 'accepted' | 'pending';
+      }
+
+      // Check legacy friend_requests table if present
+      const { data: req } = await supabase
+        .from('friend_requests')
+        .select('status')
+        .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`)
+        .maybeSingle();
+
+      if (req?.status === 'accepted') return 'accepted';
+      if (req?.status === 'pending') return 'pending';
+
+      return 'none';
+    }
+
+    // Local check
+    const stored = await AsyncStorage.getItem(LOCAL_FRIENDS_KEY);
+    const list: Profile[] = stored ? JSON.parse(stored) : DEFAULT_FRIENDS;
+    const isFriend = list.some((f) => f.id === targetUserId);
+    return isFriend ? 'accepted' : 'none';
+  } catch {
+    return 'none';
+  }
+}
+
+/**
+ * Remove friendship between current user and target friend
+ */
+export async function removeFriend(currentUserId: string, friendId: string): Promise<boolean> {
+  try {
+    if (isSupabaseConfigured) {
+      const low = currentUserId < friendId ? currentUserId : friendId;
+      const high = currentUserId < friendId ? friendId : currentUserId;
+
+      await supabase
+        .from('friendships')
+        .delete()
+        .eq('user_low', low)
+        .eq('user_high', high);
+
+      // Also clean up any legacy rows
+      await supabase
+        .from('friendships')
+        .delete()
+        .or(`and(user_id.eq.${currentUserId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${currentUserId})`);
+    }
+
+    const stored = await AsyncStorage.getItem(LOCAL_FRIENDS_KEY);
+    if (stored) {
+      const list: Profile[] = JSON.parse(stored);
+      const filtered = list.filter((f) => f.id !== friendId);
+      await AsyncStorage.setItem(LOCAL_FRIENDS_KEY, JSON.stringify(filtered));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
-import { MOMOHeader, MOMOTextField, MOMOAvatar, MOMOButton } from '@/components/ui';
+import { MOMOHeader, MOMOTextField, MOMOAvatar } from '@/components/ui';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -43,10 +43,11 @@ export default function SearchScreen() {
           paddingHorizontal: spacing.lg,
           paddingBottom: insets.bottom + 80,
         }}>
-        {results.map((user) => (
-          <View
-            key={user.id}
-            style={{
+        {results.map((item) => (
+          <Pressable
+            key={item.id}
+            onPress={() => router.push(`/user/${item.id}` as any)}
+            style={({ pressed }) => ({
               backgroundColor: colors.surface,
               borderRadius: radii.lg,
               padding: spacing.md,
@@ -55,19 +56,15 @@ export default function SearchScreen() {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.border,
-            }}>
-            <MOMOAvatar url={user.avatar} name={user.name} size="sm" />
+              opacity: pressed ? 0.85 : 1,
+            })}>
+            <MOMOAvatar url={item.avatar} name={item.name} size="sm" />
             <View style={{ flex: 1, marginLeft: spacing.md }}>
-              <Text style={[typography.headline, { color: colors.text }]}>{user.name}</Text>
-              <Text style={[typography.caption, { color: colors.textSecondary }]}>@{user.username}</Text>
+              <Text style={[typography.headline, { color: colors.text }]}>{item.name}</Text>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>@{item.username}</Text>
             </View>
-            <MOMOButton
-              title="Kết bạn"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.back()}
-            />
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          </Pressable>
         ))}
       </ScrollView>
     </View>

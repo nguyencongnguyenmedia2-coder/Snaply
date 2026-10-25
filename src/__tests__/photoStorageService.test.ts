@@ -6,6 +6,7 @@ import {
   getSignedPhotoUrl,
   clearSignedUrlCache,
   deletePhoto,
+  getUserPhotos,
 } from '@/services/photoStorageService';
 import { Photo, Friendship } from '@/lib/supabase';
 
@@ -249,6 +250,102 @@ describe('Snaply Photo Storage & Compression Service', () => {
       const list: Photo[] = JSON.parse(stored || '[]');
       const found = list.find((p) => p.id === 'photo-alice-del');
       expect(found?.deleted_at).toBeNull();
+    });
+  });
+
+  describe('Friend Photo Gallery & Profile Views', () => {
+    it('retrieves all active photos for a specific friend', async () => {
+      const friendId = 'friend-bob-uuid';
+      const photos: Photo[] = [
+        {
+          id: 'photo-1',
+          owner_id: friendId,
+          object_path: `${friendId}/photo-1.jpg`,
+          thumbnail_path: `${friendId}/photo-1_thumb.jpg`,
+          caption: 'Coffee morning',
+          mime_type: 'image/jpeg',
+          width: 1200,
+          height: 1600,
+          size_bytes: 320000,
+          thumbnail_size_bytes: 45000,
+          created_at: new Date(Date.now() - 10000).toISOString(),
+          deleted_at: null,
+        },
+        {
+          id: 'photo-2',
+          owner_id: friendId,
+          object_path: `${friendId}/photo-2.jpg`,
+          thumbnail_path: `${friendId}/photo-2_thumb.jpg`,
+          caption: 'Sunset ride',
+          mime_type: 'image/jpeg',
+          width: 1600,
+          height: 1200,
+          size_bytes: 410000,
+          thumbnail_size_bytes: 52000,
+          created_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+        {
+          id: 'photo-3-other',
+          owner_id: 'stranger-id',
+          object_path: 'stranger-id/photo-3.jpg',
+          thumbnail_path: 'stranger-id/photo-3_thumb.jpg',
+          caption: 'Not Bob photo',
+          mime_type: 'image/jpeg',
+          width: 1000,
+          height: 1000,
+          size_bytes: 200000,
+          thumbnail_size_bytes: 30000,
+          created_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+      ];
+
+      await AsyncStorage.setItem(LOCAL_PHOTOS_KEY, JSON.stringify(photos));
+
+      const bobPhotos = await getUserPhotos(friendId);
+      expect(bobPhotos.length).toBe(2);
+      expect(bobPhotos.every((p) => p.owner_id === friendId)).toBe(true);
+      expect(bobPhotos[0].id).toBe('photo-1');
+      expect(bobPhotos[1].id).toBe('photo-2');
+    });
+
+    it('excludes soft-deleted photos from friend photo gallery', async () => {
+      const friendId = 'friend-sarah-uuid';
+      const photos: Photo[] = [
+        {
+          id: 'photo-active',
+          owner_id: friendId,
+          object_path: `${friendId}/active.jpg`,
+          thumbnail_path: `${friendId}/active_thumb.jpg`,
+          mime_type: 'image/jpeg',
+          width: 1000,
+          height: 1000,
+          size_bytes: 200000,
+          thumbnail_size_bytes: 30000,
+          created_at: new Date().toISOString(),
+          deleted_at: null,
+        },
+        {
+          id: 'photo-deleted',
+          owner_id: friendId,
+          object_path: `${friendId}/deleted.jpg`,
+          thumbnail_path: `${friendId}/deleted_thumb.jpg`,
+          mime_type: 'image/jpeg',
+          width: 1000,
+          height: 1000,
+          size_bytes: 200000,
+          thumbnail_size_bytes: 30000,
+          created_at: new Date().toISOString(),
+          deleted_at: new Date().toISOString(), // Deleted
+        },
+      ];
+
+      await AsyncStorage.setItem(LOCAL_PHOTOS_KEY, JSON.stringify(photos));
+
+      const sarahPhotos = await getUserPhotos(friendId);
+      expect(sarahPhotos.length).toBe(1);
+      expect(sarahPhotos[0].id).toBe('photo-active');
     });
   });
 });

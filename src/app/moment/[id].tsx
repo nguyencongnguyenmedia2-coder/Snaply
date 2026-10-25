@@ -3,12 +3,14 @@ import {
   View,
   Text,
   ScrollView,
+  Pressable,
   Dimensions,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -151,7 +153,20 @@ export default function MomentDetailScreen() {
           paddingBottom: insets.bottom + 80,
         }}>
         {/* Author Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing.md }}>
+        <Pressable
+          onPress={() => {
+            if (moment.owner_id === user?.id) {
+              router.push('/(tabs)/profile');
+            } else {
+              router.push(`/user/${moment.owner_id}` as any);
+            }
+          }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginVertical: spacing.md,
+            opacity: pressed ? 0.8 : 1,
+          })}>
           <MOMOAvatar
             url={moment.owner?.avatar_url}
             name={moment.owner?.display_name}
@@ -165,7 +180,8 @@ export default function MomentDetailScreen() {
               @{moment.owner?.username || 'user'} • {new Date(moment.created_at).toLocaleDateString()}
             </Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+        </Pressable>
 
         {/* Photo presentation */}
         <View

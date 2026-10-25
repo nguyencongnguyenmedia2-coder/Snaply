@@ -251,9 +251,10 @@ export default function FriendsScreen() {
           </Text>
 
           {friends.map((friend, index) => (
-            <View
+            <Pressable
               key={friend.id}
-              style={{
+              onPress={() => router.push(`/user/${friend.id}` as any)}
+              style={({ pressed }) => ({
                 backgroundColor: colors.surface,
                 borderRadius: radii.lg,
                 padding: spacing.md,
@@ -262,7 +263,8 @@ export default function FriendsScreen() {
                 alignItems: 'center',
                 borderWidth: 1,
                 borderColor: colors.border,
-              }}>
+                opacity: pressed ? 0.85 : 1,
+              })}>
               <MOMOAvatar
                 url={friend.avatar_url}
                 name={friend.display_name}
@@ -296,7 +298,7 @@ export default function FriendsScreen() {
                 variant="subtle"
                 size={38}
               />
-            </View>
+            </Pressable>
           ))}
         </View>
       </ScrollView>

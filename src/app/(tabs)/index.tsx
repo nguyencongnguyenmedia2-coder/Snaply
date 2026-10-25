@@ -387,8 +387,14 @@ export default function HomeFeedScreen() {
               reactions={item.reactions}
               userReaction={item.user_reaction}
               onReact={(emoji) => handleReact(item.id, emoji)}
-              onReplyPhoto={() => router.push('/(tabs)/camera')}
-              onPressAuthor={() => router.push('/(tabs)/friends')}
+              onPressAuthor={() => {
+                const authorId = item.owner?.id || item.owner_id;
+                if (authorId === user?.id) {
+                  router.push('/(tabs)/profile');
+                } else {
+                  router.push(`/user/${authorId}` as any);
+                }
+              }}
               onOptionsPress={() => {
                 setActiveMoment(item);
                 setSheetVisible(true);
