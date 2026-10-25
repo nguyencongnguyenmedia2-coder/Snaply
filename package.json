@@ -57,7 +57,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "lint": "expo lint",
-    "landing": "node scripts/serve-landing.js"
+    "landing": "node scripts/serve-landing.js",
+    "build": "node scripts/build-web.js"
   },
   "private": true
 }
