@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snaply Admin CRM — Trung tâm quản trị hệ sinh thái</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="./assets/icon.png">
+  <link rel="apple-touch-icon" href="./assets/icon.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ==========================================================================
+         SIDEBAR NAVIGATION
+         ========================================================================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <a href="#" class="brand-badge">
+          <img src="./assets/icon.png" alt="Snaply Logo" class="brand-logo">
+          <span class="brand-name">Snap<span>ly</span></span>
+        </a>
+        <span class="brand-tag">CRM</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Section: Core Management -->
+        <div class="nav-section">
+          <div class="nav-section-title">Quản trị cốt lõi</div>
+          <ul class="nav-list">
+            <li>
+              <button class="nav-item-btn active" data-module="overview">
+                <span class="nav-icon">📊</span>
+                <span>Tổng quan (Overview)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="users">
+                <span class="nav-icon">👥</span>
+                <span>Người dùng (Users)</span>
+                <span class="nav-pill" id="badge-users-count">...</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="content">
+                <span class="nav-icon">📸</span>
+                <span>Nội dung & Ảnh (Posts)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="moderation">
+                <span class="nav-icon">🛡️</span>
+                <span>Kiểm duyệt (Reports)</span>
+                <span class="nav-pill" id="badge-reports-count" style="background: var(--status-danger);">2</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Section: Operations & Growth -->
+        <div class="nav-section">
+          <div class="nav-section-title">Vận hành & Tăng trưởng</div>
+          <ul class="nav-list">
+            <li>
+              <button class="nav-item-btn" data-module="analytics">
+                <span class="nav-icon">📈</span>
+                <span>Phân tích (Analytics)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="support">
+                <span class="nav-icon">💬</span>
+                <span>Hỗ trợ (Support Tickets)</span>
+                <span class="nav-pill" id="badge-tickets-count" style="background: var(--status-warning);">1</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="campaigns">
+                <span class="nav-icon">📣</span>
+                <span>Thông báo & Chiến dịch</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Section: System & Engineering -->
+        <div class="nav-section">
+          <div class="nav-section-title">Hệ thống & Kỹ thuật</div>
+          <ul class="nav-list">
+            <li>
+              <button class="nav-item-btn" data-module="health">
+                <span class="nav-icon">⚡</span>
+                <span>Sức khỏe hệ thống (Health)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="releases">
+                <span class="nav-icon">🚀</span>
+                <span>Quản lý phát hành (Releases)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="flags">
+                <span class="nav-icon">🚩</span>
+                <span>Tính năng (Feature Flags)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="rbac">
+                <span class="nav-icon">🔐</span>
+                <span>Nhân sự & Phân quyền (RBAC)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-item-btn" data-module="settings">
+                <span class="nav-icon">⚙️</span>
+                <span>Cài đặt & Audit Logs</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="admin-profile-compact">
+          <div class="admin-avatar">SA</div>
+          <div>
+            <div class="admin-info-name">Admin Snaply</div>
+            <div class="admin-info-role">Super Admin</div>
+          </div>
+        </div>
+        <button class="btn-icon" id="themeToggleBtn" title="Chuyển chế độ Sáng / Tối">
+          🌙
+        </button>
+      </div>
+    </aside>
+
+    <!-- ==========================================================================
+         MAIN AREA
+         ========================================================================== -->
+    <div class="main-wrapper">
+      
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <button class="btn-icon" id="mobileMenuToggle" style="display: none;">☰</button>
+          <div class="topbar-search-box">
+            <span>🔍</span>
+            <input type="text" class="topbar-search-input" id="globalSearchInput" placeholder="Tìm người dùng, bài đăng, mã báo cáo, ticket...">
+            <span class="topbar-search-shortcut">⌘K</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="env-badge">
+            <span class="env-dot"></span>
+            <span>PRODUCTION</span>
+          </div>
+
+          <div id="backendIndicator" style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: var(--status-success); background: var(--status-success-bg); padding: 5px 12px; border-radius: var(--radius-full);">
+            <span style="font-size: 0.9rem;">⚡</span>
+            <span id="backendText">Supabase Connected</span>
+          </div>
+
+          <a href="../" target="_blank" class="btn btn-secondary btn-sm" title="Mở Web App người dùng">
+            📱 Mở App
+          </a>
+          <a href="../landing/" target="_blank" class="btn btn-secondary btn-sm" title="Mở Landing Page">
+            🌐 Landing
+          </a>
+        </div>
+      </header>
+
+      <!-- Main Content Body (Rendered via app.js) -->
+      <main class="content-body" id="mainContent">
+        <!-- Dynamic module view injected here -->
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: USER ACTION / BAN MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="userActionModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="userModalTitle">Khóa tài khoản người dùng</h3>
+        <button class="modal-close" onclick="closeUserModal()">&times;</button>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;" id="userModalDesc">
+        Hành động này sẽ tạm ngưng quyền truy cập của người dùng trên toàn bộ hệ thống Snaply.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label">Lý do xử lý (Bắt buộc ghi vào Audit Log):</label>
+        <textarea class="form-textarea" id="userActionReason" rows="3" placeholder="Nhập căn cứ xử lý vi phạm tiêu chuẩn cộng đồng..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeUserModal()">Hủy bỏ</button>
+        <button class="btn btn-danger" id="userModalConfirmBtn" onclick="submitUserAction()">Xác nhận hành động</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: REPORT RESOLUTION MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Xử lý báo cáo vi phạm</h3>
+        <button class="modal-close" onclick="closeReportModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quyết định xử lý:</label>
+        <select class="form-select" id="reportActionSelect">
+          <option value="resolve_hide">Ẩn ảnh vi phạm và gửi cảnh cáo tác giả</option>
+          <option value="resolve_ban">Khóa tài khoản tác giả (Vi phạm nghiêm trọng)</option>
+          <option value="reject">Bác bỏ báo cáo (Nội dung hợp lệ)</option>
+          <option value="escalate">Chuyển lên Super Admin xem xét</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ghi chú nội bộ (Audit Log):</label>
+        <textarea class="form-textarea" id="reportResolutionNotes" rows="3" placeholder="Ghi chú nguyên do duyệt hoặc từ chối..."></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeReportModal()">Đóng</button>
+        <button class="btn btn-primary" onclick="submitReportAction()">Áp dụng quyết định</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Supabase JS Client & Core CRM Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -15,6 +15,14 @@ if (fs.existsSync(landingDir)) {
   fs.cpSync(landingDir, distLandingDir, { recursive: true });
 }
 
+// 1b. Copy Admin CRM into dist/admin
+const adminDir = path.resolve(__dirname, '..', 'admin');
+const distAdminDir = path.join(distDir, 'admin');
+if (fs.existsSync(adminDir)) {
+  console.log('📂 [Build] Copying Snaply Admin CRM into dist/admin...');
+  fs.cpSync(adminDir, distAdminDir, { recursive: true });
+}
+
 // 2. Copy robots.txt and sitemap.xml to dist root for search bots
 const robotsSrc = path.join(landingDir, 'robots.txt');
 const sitemapSrc = path.join(landingDir, 'sitemap.xml');
