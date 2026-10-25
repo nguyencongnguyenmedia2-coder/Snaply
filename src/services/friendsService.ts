@@ -40,7 +40,7 @@ const DEFAULT_GROUPS: Group[] = [
     id: 'group-1',
     name: 'Besties',
     avatar_url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&auto=format&fit=crop&q=80',
-    owner_id: 'demo-user-1234',
+    owner_id: '00000000-0000-0000-0000-000000000001',
     created_at: new Date().toISOString(),
     member_count: 4,
   },

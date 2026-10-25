@@ -289,61 +289,86 @@ export async function uploadPhoto(params: {
 
     // 4. Save metadata to PostgreSQL photos table
     onProgress?.('saving_metadata');
-    const { data: photoRecord, error: dbError } = await supabase
-      .from('photos')
-      .insert({
-        id: photoId,
-        owner_id: effectiveOwnerId,
-        object_path: objectPath,
-        thumbnail_path: thumbnailPath,
-        caption: caption?.trim() || null,
-        mime_type: 'image/jpeg',
-        width: compressed.main.width,
-        height: compressed.main.height,
-        size_bytes: compressed.main.sizeBytes,
-        thumbnail_size_bytes: compressed.thumbnail.sizeBytes,
-      })
-      .select('*, owner:profiles!owner_id(*)')
-      .single();
-
+    
     // Resolve initial signed URLs or public URLs for fast display
     let thumbSignedUrl = await getSignedPhotoUrl(thumbnailPath);
     let mainSignedUrl = await getSignedPhotoUrl(objectPath);
     if (!thumbSignedUrl) thumbSignedUrl = compressed.thumbnail.uri;
     if (!mainSignedUrl) mainSignedUrl = compressed.main.uri;
 
-    if (dbError || !photoRecord) {
-      console.warn(`[photoStorage] DB insert error (${dbError?.message}), saving to local storage.`);
-      const fallbackPhoto: Photo = {
-        id: photoId,
-        owner_id: effectiveOwnerId,
-        object_path: objectPath,
-        thumbnail_path: thumbnailPath,
-        caption: caption?.trim() || null,
-        mime_type: 'image/jpeg',
-        width: compressed.main.width,
-        height: compressed.main.height,
-        size_bytes: compressed.main.sizeBytes,
-        thumbnail_size_bytes: compressed.thumbnail.sizeBytes,
-        created_at: new Date().toISOString(),
-        deleted_at: null,
-        thumbnail_url: thumbSignedUrl,
-        main_url: mainSignedUrl,
-      };
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(effectiveOwnerId);
+    let hasAuthSession = false;
+    try {
+      const { data: sData } = await supabase.auth.getSession();
+      if (sData?.session?.user?.id) hasAuthSession = true;
+    } catch {}
 
-      const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
-      const list: Photo[] = stored ? JSON.parse(stored) : [];
-      await AsyncStorage.setItem(LOCAL_PHOTOS_KEY, JSON.stringify([fallbackPhoto, ...list]));
-      return fallbackPhoto;
+    // Only attempt remote PostgreSQL photos insert if the user has an active authenticated session & valid UUID
+    if (hasAuthSession && isUUID && !effectiveOwnerId.startsWith('demo')) {
+      // Ensure profile row exists in public.profiles to satisfy foreign key photos_owner_id_fkey
+      try {
+        await supabase.from('profiles').upsert(
+          {
+            id: effectiveOwnerId,
+            username: `user_${effectiveOwnerId.slice(0, 8)}`,
+            display_name: 'Snaply User',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id', ignoreDuplicates: true }
+        );
+      } catch {}
+
+      const { data: photoRecord, error: dbError } = await supabase
+        .from('photos')
+        .insert({
+          id: photoId,
+          owner_id: effectiveOwnerId,
+          object_path: objectPath,
+          thumbnail_path: thumbnailPath,
+          caption: caption?.trim() || null,
+          mime_type: 'image/jpeg',
+          width: compressed.main.width,
+          height: compressed.main.height,
+          size_bytes: compressed.main.sizeBytes,
+          thumbnail_size_bytes: compressed.thumbnail.sizeBytes,
+        })
+        .select('*, owner:profiles!owner_id(*)')
+        .maybeSingle();
+
+      if (photoRecord) {
+        return {
+          ...photoRecord,
+          thumbnail_url: thumbSignedUrl,
+          main_url: mainSignedUrl,
+        };
+      }
+      if (dbError) {
+        console.warn(`[photoStorage] DB insert note (${dbError.message}), saving to local storage.`);
+      }
     }
 
-    const completePhoto: Photo = {
-      ...photoRecord,
+    // Local / Demo storage fallback
+    const fallbackPhoto: Photo = {
+      id: photoId,
+      owner_id: effectiveOwnerId,
+      object_path: objectPath,
+      thumbnail_path: thumbnailPath,
+      caption: caption?.trim() || null,
+      mime_type: 'image/jpeg',
+      width: compressed.main.width,
+      height: compressed.main.height,
+      size_bytes: compressed.main.sizeBytes,
+      thumbnail_size_bytes: compressed.thumbnail.sizeBytes,
+      created_at: new Date().toISOString(),
+      deleted_at: null,
       thumbnail_url: thumbSignedUrl,
       main_url: mainSignedUrl,
     };
 
-    return completePhoto;
+    const stored = await AsyncStorage.getItem(LOCAL_PHOTOS_KEY);
+    const list: Photo[] = stored ? JSON.parse(stored) : [];
+    await AsyncStorage.setItem(LOCAL_PHOTOS_KEY, JSON.stringify([fallbackPhoto, ...list]));
+    return fallbackPhoto;
   } catch (err: any) {
     // ROLLBACK: If any step fails, clean up uploaded files to prevent orphans!
     console.warn('[photoStorage] Upload failure, rolling back storage artifacts...', err);

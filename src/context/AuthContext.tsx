@@ -25,7 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 const DEMO_USER: User = {
-  id: 'demo-user-1234',
+  id: '00000000-0000-0000-0000-000000000001',
   app_metadata: {},
   user_metadata: {},
   aud: 'authenticated',
@@ -37,7 +37,7 @@ const DEMO_USER: User = {
 };
 
 const DEMO_PROFILE: Profile = {
-  id: 'demo-user-1234',
+  id: '00000000-0000-0000-0000-000000000001',
   username: 'momo_friend',
   display_name: 'Momo Lover',
   avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',

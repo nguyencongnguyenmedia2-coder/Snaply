@@ -23,13 +23,64 @@ export function clearR2UrlCache(): void {
 }
 
 /**
- * Determine API Base URL for backend media operations
+ * Determine API Base URL for backend media operations.
+ * When developing locally with Expo (Metro server on port 8081 / localhost / LAN IP),
+ * Metro does not serve Vercel serverless /api routes, so we proxy media API calls
+ * directly to the live production Vercel backend.
  */
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    const hostname = window.location.hostname;
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.')
+    ) {
+      return 'https://snaplypro.vercel.app';
+    }
     return window.location.origin;
   }
   return 'https://snaplypro.vercel.app';
+}
+
+/**
+ * Safely parse JSON from HTTP response to prevent 'JSON Parse error: Unexpected character: <'
+ */
+async function safeJsonParse(res: Response): Promise<{ data: any; isJson: boolean; rawText: string }> {
+  try {
+    if (typeof res.text === 'function') {
+      const text = await res.text();
+      const contentType = res.headers?.get ? res.headers.get('content-type') || '' : '';
+      if (contentType.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+        try {
+          return { data: JSON.parse(text), isJson: true, rawText: text };
+        } catch {
+          return { data: null, isJson: false, rawText: text };
+        }
+      }
+      if (!contentType || contentType.includes('json')) {
+        try {
+          return { data: JSON.parse(text), isJson: true, rawText: text };
+        } catch {}
+      }
+      return { data: null, isJson: false, rawText: text };
+    }
+    if (typeof res.json === 'function') {
+      const data = await res.json();
+      return { data, isJson: true, rawText: '' };
+    }
+    return { data: null, isJson: false, rawText: '' };
+  } catch (err) {
+    if (typeof res.json === 'function') {
+      try {
+        const data = await res.json();
+        return { data, isJson: true, rawText: '' };
+      } catch {}
+    }
+    return { data: null, isJson: false, rawText: '' };
+  }
 }
 
 /**
@@ -51,20 +102,20 @@ export async function getR2PhotoUrl(
 
   try {
     const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
+    const token = sessionData?.session?.access_token || '';
 
     const res = await fetch(`${getApiBaseUrl()}/api/media/view-url?objectKey=${encodeURIComponent(objectKey)}&expiresIn=${expiresInSeconds}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
     if (res.ok) {
-      const data = await res.json();
-      if (data?.url) {
+      const parsed = await safeJsonParse(res);
+      if (parsed.isJson && parsed.data?.url) {
         r2UrlCache.set(objectKey, {
-          url: data.url,
+          url: parsed.data.url,
           expiresAt: now + expiresInSeconds * 1000,
         });
-        return data.url;
+        return parsed.data.url;
       }
     }
   } catch (err) {
@@ -118,12 +169,13 @@ export async function uploadPhotoToR2(params: {
     }),
   });
 
-  if (!mainInitRes.ok) {
-    const errData = await mainInitRes.json().catch(() => ({}));
-    throw new Error(errData.error || `Lỗi lấy presigned PUT URL từ backend (${mainInitRes.status})`);
+  const mainParsed = await safeJsonParse(mainInitRes);
+  if (!mainInitRes.ok || !mainParsed.isJson || !mainParsed.data?.uploadUrl) {
+    const errMsg = mainParsed.data?.error || `Lỗi lấy presigned PUT URL từ backend (${mainInitRes.status})`;
+    throw new Error(errMsg);
   }
 
-  const { uploadUrl: mainUploadUrl, objectKey: mainKey } = await mainInitRes.json();
+  const { uploadUrl: mainUploadUrl, objectKey: mainKey } = mainParsed.data;
 
   // B. Upload Main Photo directly to Cloudflare R2
   onProgress?.('uploading_main');
@@ -158,8 +210,9 @@ export async function uploadPhotoToR2(params: {
       }),
     });
 
-    if (thumbInitRes.ok) {
-      const { uploadUrl: thumbUploadUrl, objectKey: tKey } = await thumbInitRes.json();
+    const thumbParsed = await safeJsonParse(thumbInitRes);
+    if (thumbInitRes.ok && thumbParsed.isJson && thumbParsed.data?.uploadUrl) {
+      const { uploadUrl: thumbUploadUrl, objectKey: tKey } = thumbParsed.data;
       thumbKey = tKey;
 
       const thumbBuffer = compressed.thumbnail.base64
@@ -194,12 +247,13 @@ export async function uploadPhotoToR2(params: {
     }),
   });
 
-  if (!completeRes.ok) {
-    const completeErr = await completeRes.json().catch(() => ({}));
-    throw new Error(completeErr.error || 'Lỗi xác nhận hoàn tất tải ảnh với backend');
+  const completeParsed = await safeJsonParse(completeRes);
+  if (!completeRes.ok || !completeParsed.isJson) {
+    const errMsg = completeParsed.data?.error || `Lỗi xác nhận hoàn tất tải ảnh với backend (${completeRes.status})`;
+    throw new Error(errMsg);
   }
 
-  const completeData = await completeRes.json();
+  const completeData = completeParsed.data;
 
   const photoResult: Photo = {
     id: completeData.media?.id || generateUUID(),

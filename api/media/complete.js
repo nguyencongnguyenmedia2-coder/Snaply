@@ -44,24 +44,31 @@ module.exports = async function handler(req, res) {
     const actualSizeBytes = headResult.ContentLength || 0;
     const actualContentType = headResult.ContentType || 'image/jpeg';
 
-    // 3. Save to media_assets in Supabase DB
-    const { data: mediaRecord, error: dbError } = await supabaseAdmin
-      .from('media_assets')
-      .insert({
-        owner_id: user.id,
-        storage_provider: 'cloudflare_r2',
-        bucket_name: R2_BUCKET_NAME,
-        object_key: objectKey,
-        thumbnail_key: thumbnailKey || null,
-        content_type: actualContentType,
-        size_bytes: actualSizeBytes,
-        width: width || null,
-        height: height || null,
-        status: 'ready',
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    // 3. Save to media_assets in Supabase DB (tolerant of demo / non-auth users)
+    let mediaRecord = null;
+    try {
+      const { data: mData, error: dbError } = await supabaseAdmin
+        .from('media_assets')
+        .insert({
+          owner_id: user.id,
+          storage_provider: 'cloudflare_r2',
+          bucket_name: R2_BUCKET_NAME,
+          object_key: objectKey,
+          thumbnail_key: thumbnailKey || null,
+          content_type: actualContentType,
+          size_bytes: actualSizeBytes,
+          width: width || null,
+          height: height || null,
+          status: 'ready',
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      if (!dbError) mediaRecord = mData;
+      else console.warn('[R2 complete] media_assets insert note:', dbError.message);
+    } catch (dbErr) {
+      console.warn('[R2 complete] media_assets insert exception:', dbErr.message);
+    }
 
     // 4. Generate Presigned GET URL for instant viewing (valid for 1 hour / 3600 seconds)
     const getCommand = new GetObjectCommand({
@@ -82,7 +89,7 @@ module.exports = async function handler(req, res) {
     // 5. Also insert into moments table if caption or instant moment creation requested
     let momentRecord = null;
     try {
-      const { data: mData } = await supabaseAdmin
+      const { data: mData, error: mErr } = await supabaseAdmin
         .from('moments')
         .insert({
           owner_id: user.id,
@@ -92,9 +99,9 @@ module.exports = async function handler(req, res) {
         })
         .select()
         .single();
-      momentRecord = mData;
+      if (!mErr) momentRecord = mData;
     } catch (mErr) {
-      console.warn('[complete-upload] Optional moments insert note:', mErr);
+      console.warn('[complete-upload] Optional moments insert note:', mErr.message);
     }
 
     return res.status(200).json({

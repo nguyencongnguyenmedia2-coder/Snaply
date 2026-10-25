@@ -287,29 +287,34 @@ export async function createMoment(params: {
     },
   };
 
-  if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from('moments')
-      .insert({
-        owner_id: params.userId,
-        caption: params.caption,
-        media_url: storedMediaUrl,
-        group_id: params.groupId || null,
-      })
-      .select()
-      .single();
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.userId);
+  if (isSupabaseConfigured && isUUID && !params.userId.startsWith('demo')) {
+    try {
+      const { data, error } = await supabase
+        .from('moments')
+        .insert({
+          owner_id: params.userId,
+          caption: params.caption,
+          media_url: storedMediaUrl,
+          group_id: params.groupId || null,
+        })
+        .select()
+        .single();
 
-    if (!error && data) {
-      newMoment.id = data.id;
+      if (!error && data) {
+        newMoment.id = data.id;
 
-      // Insert recipients if specified
-      if (params.recipientIds && params.recipientIds.length > 0) {
-        const recipientsPayload = params.recipientIds.map((recId) => ({
-          moment_id: data.id,
-          recipient_id: recId,
-        }));
-        await supabase.from('moment_recipients').insert(recipientsPayload);
+        // Insert recipients if specified
+        if (params.recipientIds && params.recipientIds.length > 0) {
+          const recipientsPayload = params.recipientIds.map((recId) => ({
+            moment_id: data.id,
+            recipient_id: recId,
+          }));
+          await supabase.from('moment_recipients').insert(recipientsPayload);
+        }
       }
+    } catch (e) {
+      console.warn('[momentsService] Remote moments insert skipped/failed:', e);
     }
   }
 
