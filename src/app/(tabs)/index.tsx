@@ -8,7 +8,7 @@ import {
   RefreshControl,
   Pressable,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
@@ -77,9 +77,13 @@ export default function HomeFeedScreen() {
     }
   }, [user]);
 
-  useEffect(() => {
-    loadData();
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
+  useEffect(() => {
     // Subscribe to real-time moment and reaction updates
     const unsubMoments = realtimeManager.subscribeToMoments(
       user?.id || 'demo',

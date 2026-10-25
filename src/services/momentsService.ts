@@ -62,84 +62,86 @@ const INITIAL_MOMENTS: Moment[] = [
 
 export async function getFeedMoments(userId?: string): Promise<Moment[]> {
   try {
+    let remoteMoments: Moment[] = [];
+
     if (isSupabaseConfigured && userId) {
-      // Query moments through authorized recipients or owned moments
-      const { data, error } = await supabase
-        .from('moments')
-        .select(`
-          id,
-          owner_id,
-          caption,
-          media_url,
-          created_at,
-          group_id,
-          groups (name),
-          profiles:owner_id (id, username, display_name, avatar_url)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(30);
+      try {
+        // Query moments through authorized recipients or owned moments
+        const { data, error } = await supabase
+          .from('moments')
+          .select(`
+            id,
+            owner_id,
+            caption,
+            media_url,
+            created_at,
+            group_id,
+            groups (name),
+            profiles:owner_id (id, username, display_name, avatar_url)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(30);
 
-      if (error) throw error;
+        if (!error && data && data.length > 0) {
+          // Fetch real reactions for these moments
+          const momentIds = data.map((item: any) => item.id);
+          const { data: reactionsData } = await supabase
+            .from('reactions')
+            .select('moment_id, emoji, user_id')
+            .in('moment_id', momentIds);
 
-      if (data && data.length > 0) {
-        // Fetch real reactions for these moments
-        const momentIds = data.map((item: any) => item.id);
-        const { data: reactionsData } = await supabase
-          .from('reactions')
-          .select('moment_id, emoji, user_id')
-          .in('moment_id', momentIds);
-
-        const reactionsByMoment: Record<string, { counts: Record<string, number>; userReact: string | null }> = {};
-        momentIds.forEach((mId: string) => {
-          reactionsByMoment[mId] = { counts: {}, userReact: null };
-        });
-
-        if (reactionsData) {
-          reactionsData.forEach((r: any) => {
-            if (reactionsByMoment[r.moment_id]) {
-              const currentCounts = reactionsByMoment[r.moment_id].counts;
-              currentCounts[r.emoji] = (currentCounts[r.emoji] || 0) + 1;
-              if (r.user_id === userId) {
-                reactionsByMoment[r.moment_id].userReact = r.emoji;
-              }
-            }
+          const reactionsByMoment: Record<string, { counts: Record<string, number>; userReact: string | null }> = {};
+          momentIds.forEach((mId: string) => {
+            reactionsByMoment[mId] = { counts: {}, userReact: null };
           });
+
+          if (reactionsData) {
+            reactionsData.forEach((r: any) => {
+              if (reactionsByMoment[r.moment_id]) {
+                const currentCounts = reactionsByMoment[r.moment_id].counts;
+                currentCounts[r.emoji] = (currentCounts[r.emoji] || 0) + 1;
+                if (r.user_id === userId) {
+                  reactionsByMoment[r.moment_id].userReact = r.emoji;
+                }
+              }
+            });
+          }
+
+          // Resolve private media URLs with secure signed URLs and memory caching
+          remoteMoments = await Promise.all(
+            data.map(async (item: any) => {
+              const { resolvedMediaUrl, resolvedList } = await resolveMomentMediaUrls(item.media_url);
+
+              return {
+                id: item.id,
+                owner_id: item.owner_id,
+                caption: item.caption,
+                media_url: resolvedMediaUrl,
+                media_urls: resolvedList,
+                created_at: item.created_at,
+                group_id: item.group_id,
+                group_name: item.groups?.name || null,
+                owner: item.profiles,
+                reactions: reactionsByMoment[item.id]?.counts || {},
+                user_reaction: reactionsByMoment[item.id]?.userReact || null,
+              };
+            })
+          );
         }
-
-        // Resolve private media URLs with secure signed URLs and memory caching
-        const momentsWithSignedUrls = await Promise.all(
-          data.map(async (item: any) => {
-            const { resolvedMediaUrl, resolvedList } = await resolveMomentMediaUrls(item.media_url);
-
-            return {
-              id: item.id,
-              owner_id: item.owner_id,
-              caption: item.caption,
-              media_url: resolvedMediaUrl,
-              media_urls: resolvedList,
-              created_at: item.created_at,
-              group_id: item.group_id,
-              group_name: item.groups?.name || null,
-              owner: item.profiles,
-              reactions: reactionsByMoment[item.id]?.counts || {},
-              user_reaction: reactionsByMoment[item.id]?.userReact || null,
-            };
-          })
-        );
-
-        return momentsWithSignedUrls;
+      } catch (dbErr) {
+        console.warn('[momentsService] Remote moments query note:', dbErr);
       }
     }
 
-    // Local / fallback store
+    // Always load locally saved moments from AsyncStorage
     const stored = await AsyncStorage.getItem(LOCAL_MOMENTS_KEY);
-    if (stored) {
-      const parsed: Moment[] = JSON.parse(stored);
-      return parsed.map((m) => ({
-        ...m,
-        media_urls: m.media_urls || parseMomentMediaUrls(m.media_url),
-      }));
-    } else {
+    const localMoments: Moment[] = stored ? JSON.parse(stored) : [];
+    const parsedLocal = localMoments.map((m) => ({
+      ...m,
+      media_urls: m.media_urls || parseMomentMediaUrls(m.media_url),
+    }));
+
+    if (remoteMoments.length === 0 && parsedLocal.length === 0) {
       const initialized = INITIAL_MOMENTS.map((m) => ({
         ...m,
         media_urls: parseMomentMediaUrls(m.media_url),
@@ -147,8 +149,32 @@ export async function getFeedMoments(userId?: string): Promise<Moment[]> {
       await AsyncStorage.setItem(LOCAL_MOMENTS_KEY, JSON.stringify(initialized));
       return initialized;
     }
+
+    // Merge both sources: remote moments + local moments, deduplicating by ID
+    const momentMap = new Map<string, Moment>();
+
+    // 1. Add remote moments
+    for (const m of remoteMoments) {
+      momentMap.set(m.id, m);
+    }
+
+    // 2. Add / override with local moments (local captures take precedence)
+    for (const m of parsedLocal) {
+      momentMap.set(m.id, m);
+    }
+
+    // 3. Sort chronologically (newest at top)
+    const mergedMoments = Array.from(momentMap.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    return mergedMoments;
   } catch (err) {
     console.warn('Error fetching feed moments:', err);
+    try {
+      const stored = await AsyncStorage.getItem(LOCAL_MOMENTS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
     return INITIAL_MOMENTS;
   }
 }
@@ -318,10 +344,21 @@ export async function createMoment(params: {
     }
   }
 
-  // Update local storage
-  const existing = await getFeedMoments(params.userId);
-  const updated = [newMoment, ...existing];
+  // Update local storage directly
+  const stored = await AsyncStorage.getItem(LOCAL_MOMENTS_KEY);
+  const existingList: Moment[] = stored ? JSON.parse(stored) : [];
+  const updated = [newMoment, ...existingList.filter((m) => m.id !== newMoment.id)];
   await AsyncStorage.setItem(LOCAL_MOMENTS_KEY, JSON.stringify(updated));
+
+  // Also auto-register this moment in user's memories archive
+  try {
+    const rawSaved = await AsyncStorage.getItem('@momo_saved_memories');
+    const savedList: string[] = rawSaved ? JSON.parse(rawSaved) : [];
+    if (!savedList.includes(newMoment.id)) {
+      savedList.unshift(newMoment.id);
+      await AsyncStorage.setItem('@momo_saved_memories', JSON.stringify(savedList));
+    }
+  } catch {}
 
   // Trigger widget snapshot refresh with latest shared photo!
   updateWidgetMomentsSnapshot(updated).catch(() => {});

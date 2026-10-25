@@ -40,12 +40,17 @@ const DEFAULT_ALBUMS: Album[] = [
 export async function getMemories(userId: string): Promise<Moment[]> {
   const feed = await getFeedMoments(userId);
   const raw = await AsyncStorage.getItem(SAVED_MEMORIES_KEY);
-  if (raw) {
-    const savedIds: string[] = JSON.parse(raw);
-    const saved = feed.filter((m) => savedIds.includes(m.id));
-    return saved.length > 0 ? saved : feed;
-  }
-  return feed;
+  const savedIds: string[] = raw ? JSON.parse(raw) : [];
+
+  // All moments created by the current user are memories, plus any explicitly saved moments
+  const myMemories = feed.filter(
+    (m) =>
+      m.owner_id === userId ||
+      m.owner?.id === userId ||
+      savedIds.includes(m.id)
+  );
+
+  return myMemories.length > 0 ? myMemories : feed;
 }
 
 export async function saveMemory(momentId: string): Promise<void> {

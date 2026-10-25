@@ -75,10 +75,8 @@ export default function CameraScreen() {
     if (!user || photoUris.length === 0) return;
     try {
       setIsInstantPosting(true);
-      // Immediate optimistic feedback: route straight to feed
-      router.replace('/(tabs)');
 
-      // Background upload all photos to Cloudflare R2 / Supabase
+      // Upload all photos to Cloudflare R2 / local
       const uploadedPhotos = await Promise.all(
         photoUris.map((u) => uploadPhoto({ localUri: u, ownerId: user.id }))
       );
@@ -96,8 +94,15 @@ export default function CameraScreen() {
             }
           : undefined,
       });
+
+      // Clear captured photos tray
+      setAlbumPhotos([]);
+
+      // Route smoothly to feed with the moment fully saved!
+      router.replace('/(tabs)');
     } catch (err) {
       console.warn('Instant post error:', err);
+      router.replace('/(tabs)');
     } finally {
       setIsInstantPosting(false);
     }

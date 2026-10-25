@@ -8,13 +8,14 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { useAuth } from '@/context/AuthContext';
 import { MOMOHeader, MOMOIconButton, MOMOBottomSheet, MOMOTextField, MOMOButton } from '@/components/ui';
 import { getMemories, getAlbums, createAlbum, Album } from '@/services/memoriesService';
+import { parseMomentMediaUrls } from '@/services/momentsService';
 import { Moment } from '@/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -47,9 +48,11 @@ export default function MemoriesScreen() {
     }
   }, [user]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const handleCreateAlbum = async () => {
     if (!albumTitle.trim() || !user) return;
@@ -202,24 +205,47 @@ export default function MemoriesScreen() {
           </Text>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-            {memories.map((moment) => (
-              <Pressable
-                key={moment.id}
-                onPress={() => router.push(`/moment/${moment.id}` as any)}
-                style={{
-                  width: gridItemWidth,
-                  height: gridItemWidth * 1.3,
-                  borderRadius: radii.md,
-                  overflow: 'hidden',
-                  backgroundColor: colors.surfaceMuted,
-                }}>
-                <Image
-                  source={{ uri: moment.media_url }}
-                  style={{ width: '100%', height: '100%' }}
-                  resizeMode="cover"
-                />
-              </Pressable>
-            ))}
+            {memories.map((moment) => {
+              const mediaList = moment.media_urls || parseMomentMediaUrls(moment.media_url);
+              const displayImage = mediaList[0] || moment.media_url;
+              const isAlbum = mediaList.length > 1;
+
+              return (
+                <Pressable
+                  key={moment.id}
+                  onPress={() => router.push(`/moment/${moment.id}` as any)}
+                  style={{
+                    width: gridItemWidth,
+                    height: gridItemWidth * 1.3,
+                    borderRadius: radii.md,
+                    overflow: 'hidden',
+                    backgroundColor: colors.surfaceMuted,
+                    position: 'relative',
+                  }}>
+                  <Image
+                    source={{ uri: displayImage }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                  {isAlbum && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        backgroundColor: 'rgba(0,0,0,0.65)',
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: radii.xs,
+                      }}>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                        📚 {mediaList.length}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
