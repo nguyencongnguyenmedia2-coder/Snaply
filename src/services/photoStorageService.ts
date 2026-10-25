@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured, Photo } from '@/lib/supabase';
 import { compressPhotoForUpload, CompressionResult } from './imageCompressionService';
+import { uploadPhotoToR2, getR2PhotoUrl } from './r2StorageService';
 
 export const SNAPLY_BUCKET = 'snaply-photos';
 export const LOCAL_PHOTOS_KEY = '@snaply_local_photos';
@@ -42,6 +43,18 @@ export async function getSignedPhotoUrl(
   if (cached && cached.expiresAt - now > 30 * 1000) {
     return cached.url;
   }
+
+  // Check if path is an R2 object key
+  try {
+    const r2Url = await getR2PhotoUrl(path, expiresInSeconds);
+    if (r2Url && r2Url.startsWith('http')) {
+      signedUrlCache.set(path, {
+        url: r2Url,
+        expiresAt: now + expiresInSeconds * 1000,
+      });
+      return r2Url;
+    }
+  } catch {}
 
   if (!isSupabaseConfigured) {
     const mockSigned = `https://mock-storage.snaply.local/${path}?token=mock_signed_ttl_${now + expiresInSeconds * 1000}`;
@@ -125,7 +138,7 @@ async function prepareUploadBuffer(variant: { uri: string; base64?: string }): P
 }
 
 /**
- * Upload photo following full Snaply two-tier compression & private storage architecture
+ * Upload photo following full Snaply two-tier compression with Cloudflare R2 primary and Supabase fallback
  */
 export async function uploadPhoto(params: {
   localUri: string;
@@ -137,6 +150,24 @@ export async function uploadPhoto(params: {
 
   if (!ownerId) {
     throw new Error('Người dùng chưa đăng nhập. Không thể tải ảnh lên.');
+  }
+
+  // 1. Try Cloudflare R2 Primary Storage Pipeline first
+  try {
+    const r2Photo = await uploadPhotoToR2({
+      localUri,
+      caption,
+      ownerId,
+      onProgress: (stage) => {
+        if (stage === 'compressing') onProgress?.('compressing');
+        else if (stage === 'uploading_main') onProgress?.('uploading_main');
+        else if (stage === 'uploading_thumb') onProgress?.('uploading_thumb');
+        else if (stage === 'completing') onProgress?.('saving_metadata');
+      },
+    });
+    return r2Photo;
+  } catch (r2Error: any) {
+    console.warn('[photoStorage] Cloudflare R2 upload attempt yielded:', r2Error?.message, '- falling back to Supabase Storage pipeline.');
   }
 
   // Check active session to align ownerId with Supabase auth token
