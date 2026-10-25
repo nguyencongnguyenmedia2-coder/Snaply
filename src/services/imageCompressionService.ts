@@ -7,6 +7,7 @@ export interface CompressedImageVariant {
   height: number;
   sizeBytes: number;
   mimeType: string;
+  base64?: string;
 }
 
 export interface CompressionResult {
@@ -108,10 +109,13 @@ export async function compressPhotoForUpload(originalUri: string): Promise<Compr
     {
       compress: MAIN_QUALITY,
       format: ImageManipulator.SaveFormat.JPEG,
+      base64: true,
     }
   );
 
-  const mainSizeBytes = await getFileSizeBytes(manipulatedMain.uri);
+  const mainSizeBytes = manipulatedMain.base64
+    ? Math.round((manipulatedMain.base64.length * 3) / 4)
+    : await getFileSizeBytes(manipulatedMain.uri);
 
   // 3. Compress Thumbnail (Max 320px, JPEG 0.72)
   const thumbDims = calculateTargetDimensions(originalWidth, originalHeight, MAX_THUMB_DIMENSION);
@@ -130,10 +134,13 @@ export async function compressPhotoForUpload(originalUri: string): Promise<Compr
     {
       compress: THUMB_QUALITY,
       format: ImageManipulator.SaveFormat.JPEG,
+      base64: true,
     }
   );
 
-  const thumbSizeBytes = await getFileSizeBytes(manipulatedThumb.uri);
+  const thumbSizeBytes = manipulatedThumb.base64
+    ? Math.round((manipulatedThumb.base64.length * 3) / 4)
+    : await getFileSizeBytes(manipulatedThumb.uri);
 
   return {
     main: {
@@ -142,6 +149,7 @@ export async function compressPhotoForUpload(originalUri: string): Promise<Compr
       height: manipulatedMain.height,
       sizeBytes: mainSizeBytes,
       mimeType: 'image/jpeg',
+      base64: manipulatedMain.base64,
     },
     thumbnail: {
       uri: manipulatedThumb.uri,
@@ -149,6 +157,7 @@ export async function compressPhotoForUpload(originalUri: string): Promise<Compr
       height: manipulatedThumb.height,
       sizeBytes: thumbSizeBytes,
       mimeType: 'image/jpeg',
+      base64: manipulatedThumb.base64,
     },
   };
 }

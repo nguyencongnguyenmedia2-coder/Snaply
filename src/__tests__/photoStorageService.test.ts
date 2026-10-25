@@ -348,4 +348,32 @@ describe('Snaply Photo Storage & Compression Service', () => {
       expect(sarahPhotos[0].id).toBe('photo-active');
     });
   });
+
+  describe('Binary Upload & MIME Type Safety', () => {
+    it('correctly converts base64 encoded photo to binary ArrayBuffer without text/plain fallback', () => {
+      const { base64ToArrayBuffer } = require('@/services/photoStorageService');
+      // 1x1 transparent PNG base64
+      const sampleBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const buffer = base64ToArrayBuffer(sampleBase64);
+
+      expect(buffer).toBeInstanceOf(ArrayBuffer);
+      expect(buffer.byteLength).toBe(70);
+
+      const uint8 = new Uint8Array(buffer);
+      // Valid PNG header: 0x89 0x50 0x4E 0x47
+      expect(uint8[0]).toBe(137);
+      expect(uint8[1]).toBe(80);
+      expect(uint8[2]).toBe(78);
+      expect(uint8[3]).toBe(71);
+    });
+
+    it('strips data URI prefix if present before converting to ArrayBuffer', () => {
+      const { base64ToArrayBuffer } = require('@/services/photoStorageService');
+      const dataUri = 'data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const buffer = base64ToArrayBuffer(dataUri);
+
+      expect(buffer).toBeInstanceOf(ArrayBuffer);
+      expect(buffer.byteLength).toBe(70);
+    });
+  });
 });

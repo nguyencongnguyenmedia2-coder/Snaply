@@ -74,6 +74,56 @@ export async function getSignedPhotoUrl(
   }
 }
 
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+export function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  const clean = base64.replace(/^data:image\/[a-z]+;base64,/, '').trim();
+
+  if (typeof atob === 'function') {
+    const binaryString = atob(clean);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  // Pure JavaScript fallback for environments without atob
+  let bufferLength = clean.length * 0.75;
+  if (clean[clean.length - 1] === '=') bufferLength--;
+  if (clean[clean.length - 2] === '=') bufferLength--;
+
+  const arrayBuffer = new ArrayBuffer(bufferLength);
+  const bytes = new Uint8Array(arrayBuffer);
+
+  let p = 0;
+  for (let i = 0; i < clean.length; i += 4) {
+    const encoded1 = BASE64_CHARS.indexOf(clean[i]);
+    const encoded2 = BASE64_CHARS.indexOf(clean[i + 1]);
+    const encoded3 = BASE64_CHARS.indexOf(clean[i + 2]);
+    const encoded4 = BASE64_CHARS.indexOf(clean[i + 3]);
+
+    bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+    if (encoded3 !== 64 && encoded3 !== -1) {
+      bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    }
+    if (encoded4 !== 64 && encoded4 !== -1) {
+      bytes[p++] = ((encoded3 & 3) << 6) | encoded4;
+    }
+  }
+
+  return arrayBuffer;
+}
+
+async function prepareUploadBuffer(variant: { uri: string; base64?: string }): Promise<ArrayBuffer> {
+  if (variant.base64) {
+    return base64ToArrayBuffer(variant.base64);
+  }
+  const response = await fetch(variant.uri);
+  return await response.arrayBuffer();
+}
+
 /**
  * Upload photo following full Snaply two-tier compression & private storage architecture
  */
@@ -128,12 +178,11 @@ export async function uploadPhoto(params: {
   let thumbUploaded = false;
 
   try {
-    const mainResponse = await fetch(compressed.main.uri);
-    const mainBlob = await mainResponse.blob();
+    const mainBuffer = await prepareUploadBuffer(compressed.main);
 
     const { error: mainUploadError } = await supabase.storage
       .from(SNAPLY_BUCKET)
-      .upload(objectPath, mainBlob, {
+      .upload(objectPath, mainBuffer, {
         contentType: 'image/jpeg',
         upsert: false,
       });
@@ -145,12 +194,11 @@ export async function uploadPhoto(params: {
 
     // 3. Upload Thumbnail
     onProgress?.('uploading_thumb');
-    const thumbResponse = await fetch(compressed.thumbnail.uri);
-    const thumbBlob = await thumbResponse.blob();
+    const thumbBuffer = await prepareUploadBuffer(compressed.thumbnail);
 
     const { error: thumbUploadError } = await supabase.storage
       .from(SNAPLY_BUCKET)
-      .upload(thumbnailPath, thumbBlob, {
+      .upload(thumbnailPath, thumbBuffer, {
         contentType: 'image/jpeg',
         upsert: false,
       });

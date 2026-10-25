@@ -11,12 +11,12 @@ VALUES (
     'snaply-photos',
     false,
     10485760, -- 10MB maximum file size limit
-    ARRAY['image/jpeg', 'image/png', 'image/webp']
+    ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 )
 ON CONFLICT (id) DO UPDATE SET
     public = false,
     file_size_limit = 10485760,
-    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+    allowed_mime_types = ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 -- 2. ENHANCED FRIENDSHIPS TABLE
 -- Ensure friendships adhere to user_low < user_high ordering
