@@ -13,6 +13,8 @@ const distLandingDir = path.join(distDir, 'landing');
 if (fs.existsSync(landingDir)) {
   console.log('📂 [Build] Copying landing page into dist/landing...');
   fs.cpSync(landingDir, distLandingDir, { recursive: true });
+  fs.copyFileSync(path.join(landingDir, 'index.html'), path.join(distDir, 'landing.html'));
+  console.log('📄 [Build] Copied dist/landing.html for Vercel cleanUrls');
 }
 
 // 1b. Copy Admin CRM into dist/admin & dist/admin.html
