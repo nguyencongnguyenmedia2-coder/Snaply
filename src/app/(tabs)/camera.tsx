@@ -50,10 +50,10 @@ export default function CameraScreen() {
   };
 
   const triggerShutterFlash = () => {
-    flashOpacity.setValue(0.85);
+    flashOpacity.setValue(0.9);
     Animated.timing(flashOpacity, {
       toValue: 0,
-      duration: 180,
+      duration: 200,
       useNativeDriver: true,
     }).start();
   };
@@ -64,7 +64,7 @@ export default function CameraScreen() {
     try {
       setIsCapturing(true);
 
-      // Trigger shutter visual and haptic feedback immediately
+      // 1. Shutter flash & haptic feedback immediately
       triggerShutterFlash();
       if (Platform.OS !== 'web') {
         try {
@@ -72,6 +72,7 @@ export default function CameraScreen() {
         } catch {}
       }
 
+      // 2. Capture high-resolution photo from native CameraView
       if (cameraRef.current) {
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.88,
@@ -87,8 +88,9 @@ export default function CameraScreen() {
         }
       }
 
-      // Fallback if cameraRef not ready or on web
-      const fallbackUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900&auto=format&fit=crop&q=80';
+      // Fallback for web or dev environment without physical camera hardware
+      const fallbackUrl =
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=900&auto=format&fit=crop&q=80';
       router.push({
         pathname: '/camera/preview',
         params: { uri: fallbackUrl },
@@ -195,25 +197,42 @@ export default function CameraScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
+      {/* 
+        CRITICAL FOR EXPO-CAMERA SDK 58:
+        CameraView does NOT support children on iOS native.
+        All controls MUST be rendered as siblings on top using absolute positioning.
+      */}
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
         facing={facing}
-        enableTorch={flash === 'on'}>
-        
-        {/* Shutter flash animation overlay */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: '#FFFFFF',
-              opacity: flashOpacity,
-            },
-          ]}
-        />
+        enableTorch={flash === 'on'}
+      />
 
-        {/* Top Floating Control Bar */}
+      {/* Shutter flash animation layer */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: '#FFFFFF',
+            opacity: flashOpacity,
+            zIndex: 90,
+          },
+        ]}
+      />
+
+      {/* UI Overlay Container (Layered on top of CameraView) */}
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            justifyContent: 'space-between',
+            zIndex: 100,
+          },
+        ]}
+        pointerEvents="box-none">
+        {/* Top Control Bar */}
         <View
           style={{
             paddingTop: Math.max(insets.top, 20),
@@ -221,14 +240,14 @@ export default function CameraScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            zIndex: 10,
-          }}>
+          }}
+          pointerEvents="box-none">
           <MOMOIconButton
-            icon={<Ionicons name="close" size={24} color="#FFFFFF" />}
+            icon={<Ionicons name="close" size={26} color="#FFFFFF" />}
             onPress={() => router.push('/(tabs)')}
             accessibilityLabel="Close Camera"
             variant="glass"
-            size={44}
+            size={46}
           />
 
           <View
@@ -236,12 +255,12 @@ export default function CameraScreen() {
               paddingHorizontal: spacing.md,
               paddingVertical: spacing.xs,
               borderRadius: radii.full,
-              backgroundColor: 'rgba(0,0,0,0.4)',
+              backgroundColor: 'rgba(0,0,0,0.45)',
               borderWidth: 1,
               borderColor: 'rgba(255,255,255,0.2)',
             }}>
             <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 }}>
-              MOMO MOMENT
+              MOMO CAMERA
             </Text>
           </View>
 
@@ -256,12 +275,13 @@ export default function CameraScreen() {
             onPress={toggleFlash}
             accessibilityLabel="Toggle Flash"
             variant="glass"
-            size={44}
+            size={46}
           />
         </View>
 
-        {/* Framing Guides */}
-        <View
+        {/* Framing Guides — tap inside to capture photo as well */}
+        <Pressable
+          onPress={takePhoto}
           style={{
             flex: 1,
             alignItems: 'center',
@@ -275,11 +295,17 @@ export default function CameraScreen() {
               borderWidth: 2,
               borderColor: 'rgba(255, 255, 255, 0.45)',
               borderStyle: 'dashed',
-            }}
-          />
-        </View>
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              paddingBottom: spacing.sm,
+            }}>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '600' }}>
+              Tap shutter or screen to snap
+            </Text>
+          </View>
+        </Pressable>
 
-        {/* Bottom Shutter & Controls Bar (Dedicated Full Screen) */}
+        {/* Bottom Shutter & Controls Bar */}
         <View
           style={{
             paddingBottom: Math.max(insets.bottom, 24) + 16,
@@ -287,31 +313,33 @@ export default function CameraScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            zIndex: 10,
-          }}>
-          {/* Gallery Picker */}
+            backgroundColor: 'rgba(0,0,0,0.25)',
+            paddingTop: spacing.md,
+          }}
+          pointerEvents="box-none">
+          {/* Gallery Picker Button */}
           <Pressable
             onPress={pickFromGallery}
             accessibilityRole="button"
             accessibilityLabel="Choose photo from library"
             style={({ pressed }) => [
               {
-                width: 52,
-                height: 52,
+                width: 54,
+                height: 54,
                 borderRadius: radii.full,
-                backgroundColor: 'rgba(255, 255, 255, 0.28)',
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
                 borderWidth: 1.5,
-                borderColor: 'rgba(255, 255, 255, 0.4)',
+                borderColor: 'rgba(255, 255, 255, 0.5)',
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.94 : 1 }],
+                transform: [{ scale: pressed ? 0.93 : 1 }],
               },
             ]}>
-            <Ionicons name="images" size={24} color="#FFFFFF" />
+            <Ionicons name="images" size={26} color="#FFFFFF" />
           </Pressable>
 
-          {/* Big Tactile Shutter Button */}
+          {/* Big Tactile Shutter Button (Center) */}
           <Pressable
             onPress={takePhoto}
             disabled={isCapturing}
@@ -319,20 +347,21 @@ export default function CameraScreen() {
             accessibilityLabel="Capture photo"
             style={({ pressed }) => [
               {
-                width: 86,
-                height: 86,
-                borderRadius: 43,
-                borderWidth: 4,
+                width: 88,
+                height: 88,
+                borderRadius: 44,
+                borderWidth: 5,
                 borderColor: '#FFFFFF',
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: 4,
                 opacity: isCapturing ? 0.6 : 1,
-                transform: [{ scale: pressed ? 0.92 : 1 }],
+                transform: [{ scale: pressed ? 0.91 : 1 }],
                 shadowColor: '#000000',
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.35,
-                shadowRadius: 8,
+                shadowOpacity: 0.45,
+                shadowRadius: 10,
+                elevation: 10,
               },
             ]}>
             <View
@@ -346,10 +375,10 @@ export default function CameraScreen() {
               }}>
               <View
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  backgroundColor: 'rgba(255, 255, 255, 0.4)',
                 }}
               />
             </View>
@@ -362,22 +391,22 @@ export default function CameraScreen() {
             accessibilityLabel="Flip camera front or rear"
             style={({ pressed }) => [
               {
-                width: 52,
-                height: 52,
+                width: 54,
+                height: 54,
                 borderRadius: radii.full,
-                backgroundColor: 'rgba(255, 255, 255, 0.28)',
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
                 borderWidth: 1.5,
-                borderColor: 'rgba(255, 255, 255, 0.4)',
+                borderColor: 'rgba(255, 255, 255, 0.5)',
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.94 : 1 }],
+                transform: [{ scale: pressed ? 0.93 : 1 }],
               },
             ]}>
-            <Ionicons name="camera-reverse" size={26} color="#FFFFFF" />
+            <Ionicons name="camera-reverse" size={28} color="#FFFFFF" />
           </Pressable>
         </View>
-      </CameraView>
+      </View>
     </View>
   );
 }
