@@ -15,12 +15,14 @@ if (fs.existsSync(landingDir)) {
   fs.cpSync(landingDir, distLandingDir, { recursive: true });
 }
 
-// 1b. Copy Admin CRM into dist/admin
+// 1b. Copy Admin CRM into dist/admin & dist/admin.html
 const adminDir = path.resolve(__dirname, '..', 'admin');
 const distAdminDir = path.join(distDir, 'admin');
 if (fs.existsSync(adminDir)) {
   console.log('📂 [Build] Copying Snaply Admin CRM into dist/admin...');
   fs.cpSync(adminDir, distAdminDir, { recursive: true });
+  fs.copyFileSync(path.join(adminDir, 'index.html'), path.join(distDir, 'admin.html'));
+  console.log('📄 [Build] Copied dist/admin.html for Vercel cleanUrls');
 }
 
 // 2. Copy robots.txt and sitemap.xml to dist root for search bots
