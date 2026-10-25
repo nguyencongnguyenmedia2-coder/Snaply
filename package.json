@@ -56,7 +56,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "landing": "node scripts/serve-landing.js"
   },
   "private": true
 }
