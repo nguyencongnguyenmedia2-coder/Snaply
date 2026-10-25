@@ -2,7 +2,9 @@
 -- Version: 20261025010000
 -- Description: Implement Snaply photo storage, two-tier compression paths, friendships schema, deletion queue, and private bucket RLS
 
--- 1. PRIVATE STORAGE BUCKET: snaply-photos
+-- 1. EXTENSIONS & PRIVATE STORAGE BUCKET: snaply-photos
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
     'snaply-photos',
@@ -19,17 +21,105 @@ ON CONFLICT (id) DO UPDATE SET
 -- 2. ENHANCED FRIENDSHIPS TABLE
 -- Ensure friendships adhere to user_low < user_high ordering
 CREATE TABLE IF NOT EXISTS public.friendships (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_low UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    user_high UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    requested_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_low UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_high UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    requested_by UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    CONSTRAINT check_user_order CHECK (user_low < user_high),
-    CONSTRAINT unique_friendship_pair UNIQUE (user_low, user_high),
-    CONSTRAINT check_requested_by CHECK (requested_by = user_low OR requested_by = user_high)
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
+
+-- If friendships already existed with old schema (user_id, friend_id), alter and migrate seamlessly:
+DO $$
+BEGIN
+    -- Check and add user_low
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'user_low'
+    ) THEN
+        ALTER TABLE public.friendships ADD COLUMN user_low UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+
+    -- Check and add user_high
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'user_high'
+    ) THEN
+        ALTER TABLE public.friendships ADD COLUMN user_high UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+
+    -- Check and add requested_by
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'requested_by'
+    ) THEN
+        ALTER TABLE public.friendships ADD COLUMN requested_by UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+
+    -- Check and add status
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'status'
+    ) THEN
+        ALTER TABLE public.friendships ADD COLUMN status TEXT DEFAULT 'accepted' CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked'));
+    END IF;
+
+    -- Check and add updated_at
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'updated_at'
+    ) THEN
+        ALTER TABLE public.friendships ADD COLUMN updated_at TIMESTAMPTZ DEFAULT NOW();
+    END IF;
+
+    -- If legacy columns user_id and friend_id exist, migrate any existing data
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'user_id'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'friend_id'
+    ) THEN
+        -- Populate user_low, user_high, requested_by, status from legacy rows
+        UPDATE public.friendships
+        SET 
+            user_low = LEAST(user_id, friend_id),
+            user_high = GREATEST(user_id, friend_id),
+            requested_by = COALESCE(requested_by, user_id),
+            status = COALESCE(status, 'accepted')
+        WHERE user_low IS NULL AND user_id IS NOT NULL AND friend_id IS NOT NULL;
+
+        -- Deduplicate if both (A, B) and (B, A) existed
+        DELETE FROM public.friendships a
+        USING public.friendships b
+        WHERE a.id > b.id 
+          AND a.user_low = b.user_low 
+          AND a.user_high = b.user_high;
+    END IF;
+
+    -- Clean any invalid/empty rows before enforcing NOT NULL
+    DELETE FROM public.friendships WHERE user_low IS NULL OR user_high IS NULL;
+
+    -- Ensure NOT NULL constraints
+    ALTER TABLE public.friendships ALTER COLUMN user_low SET NOT NULL;
+    ALTER TABLE public.friendships ALTER COLUMN user_high SET NOT NULL;
+    ALTER TABLE public.friendships ALTER COLUMN requested_by SET NOT NULL;
+
+    -- Add constraints if not yet present
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_user_order') THEN
+        ALTER TABLE public.friendships ADD CONSTRAINT check_user_order CHECK (user_low < user_high);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_friendship_pair') THEN
+        ALTER TABLE public.friendships DROP CONSTRAINT IF EXISTS friendships_user_id_friend_id_key;
+        ALTER TABLE public.friendships ADD CONSTRAINT unique_friendship_pair UNIQUE (user_low, user_high);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_requested_by') THEN
+        ALTER TABLE public.friendships ADD CONSTRAINT check_requested_by CHECK (requested_by = user_low OR requested_by = user_high);
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_friendships_user_low ON public.friendships(user_low);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_high ON public.friendships(user_high);
@@ -54,7 +144,7 @@ $$;
 
 -- 3. PHOTOS TABLE (Metadata & Storage Paths)
 CREATE TABLE IF NOT EXISTS public.photos (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     object_path TEXT NOT NULL,
     thumbnail_path TEXT NOT NULL,
@@ -74,7 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_photos_object_path ON public.photos(object_path);
 
 -- 4. PHOTO DELETION JOBS QUEUE
 CREATE TABLE IF NOT EXISTS public.photo_deletion_jobs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     photo_id UUID,
     owner_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     object_path TEXT NOT NULL,
@@ -93,6 +183,11 @@ CREATE INDEX IF NOT EXISTS idx_photo_deletion_jobs_status ON public.photo_deleti
 
 -- (A) Friendships RLS
 ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;
+
+-- Drop any legacy policies from earlier migrations
+DROP POLICY IF EXISTS "Users can view own friendships" ON public.friendships;
+DROP POLICY IF EXISTS "Users can insert own friendships" ON public.friendships;
+DROP POLICY IF EXISTS "Users can delete own friendships" ON public.friendships;
 
 DROP POLICY IF EXISTS "Participants can view their friendships" ON public.friendships;
 CREATE POLICY "Participants can view their friendships"
