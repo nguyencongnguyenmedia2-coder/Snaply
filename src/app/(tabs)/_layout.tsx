@@ -72,6 +72,7 @@ export default function TabsLayout() {
         listeners={{ tabPress: handleTabPress }}
         options={{
           title: '',
+          tabBarStyle: { display: 'none' },
           tabBarIcon: () => (
             <View
               style={{
