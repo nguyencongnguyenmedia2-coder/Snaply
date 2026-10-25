@@ -7,6 +7,7 @@ import {
   clearSignedUrlCache,
   deletePhoto,
   getUserPhotos,
+  base64ToArrayBuffer,
 } from '@/services/photoStorageService';
 import { Photo, Friendship } from '@/lib/supabase';
 
@@ -351,7 +352,6 @@ describe('Snaply Photo Storage & Compression Service', () => {
 
   describe('Binary Upload & MIME Type Safety', () => {
     it('correctly converts base64 encoded photo to binary ArrayBuffer without text/plain fallback', () => {
-      const { base64ToArrayBuffer } = require('@/services/photoStorageService');
       // 1x1 transparent PNG base64
       const sampleBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       const buffer = base64ToArrayBuffer(sampleBase64);
@@ -368,7 +368,6 @@ describe('Snaply Photo Storage & Compression Service', () => {
     });
 
     it('strips data URI prefix if present before converting to ArrayBuffer', () => {
-      const { base64ToArrayBuffer } = require('@/services/photoStorageService');
       const dataUri = 'data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
       const buffer = base64ToArrayBuffer(dataUri);
 

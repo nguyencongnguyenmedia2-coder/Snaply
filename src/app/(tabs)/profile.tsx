@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
   Alert,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +20,10 @@ import {
   MOMOTextField,
   MOMOToast,
 } from '@/components/ui';
+import { uploadMomentMedia } from '@/services/momentsService';
+import { getFriends, getGroups } from '@/services/friendsService';
+import { getActiveReefs, Reef } from '@/services/reefService';
+import { ReefViewerModal } from '@/components/reef/ReefViewerModal';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -34,6 +37,33 @@ export default function ProfileScreen() {
   const [updating, setUpdating] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Real stats
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [groupsCount, setGroupsCount] = useState(0);
+  const [myReefs, setMyReefs] = useState<Reef[]>([]);
+  const [reefViewerVisible, setReefViewerVisible] = useState(false);
+
+  const loadStats = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [friends, groups, reefs] = await Promise.all([
+        getFriends(user.id),
+        getGroups(user.id),
+        getActiveReefs(user.id),
+      ]);
+      setFriendsCount(friends.length);
+      setGroupsCount(groups.length);
+      // Filter only my own reefs
+      setMyReefs(reefs.filter((r) => r.owner_id === user.id));
+    } catch (err) {
+      console.warn('Profile stats load error:', err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
   const handlePickAvatar = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -44,7 +74,10 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets && result.assets[0].uri) {
-        await updateProfile({ avatar_url: result.assets[0].uri });
+        setToastMessage('Đang tải ảnh đại diện lên...');
+        const localUri = result.assets[0].uri;
+        const uploadedUrl = user ? await uploadMomentMedia(localUri, user.id) : localUri;
+        await updateProfile({ avatar_url: uploadedUrl });
         setToastMessage('Đã cập nhật ảnh đại diện ✨');
       }
     } catch (err) {
@@ -173,21 +206,39 @@ export default function ProfileScreen() {
               borderTopWidth: 1,
               borderTopColor: colors.border,
             }}>
-            <View style={{ alignItems: 'center' }}>
+            {/* My Reefs / Stories */}
+            <Pressable
+              style={{ alignItems: 'center' }}
+              onPress={() => {
+                if (myReefs.length > 0) setReefViewerVisible(true);
+                else router.push('/reef/create');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Tin Reef của tôi">
               <Text style={[typography.title3, { fontWeight: '800', color: colors.coral }]}>
-                18
+                {myReefs.length > 0 ? `${myReefs.length} 📸` : '+'}
               </Text>
-              <Text style={[typography.caption, { color: colors.textSecondary }]}>Khoảnh khắc</Text>
-            </View>
-            <View style={{ alignItems: 'center' }}>
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>Tin Reef</Text>
+            </Pressable>
+
+            <View style={{ width: 1, height: 32, backgroundColor: colors.border }} />
+
+            <Pressable
+              style={{ alignItems: 'center' }}
+              onPress={() => router.push('/(tabs)/friends')}
+              accessibilityRole="button"
+              accessibilityLabel="Bạn thân">
               <Text style={[typography.title3, { fontWeight: '800', color: colors.coral }]}>
-                12
+                {friendsCount}
               </Text>
               <Text style={[typography.caption, { color: colors.textSecondary }]}>Bạn thân</Text>
-            </View>
+            </Pressable>
+
+            <View style={{ width: 1, height: 32, backgroundColor: colors.border }} />
+
             <View style={{ alignItems: 'center' }}>
               <Text style={[typography.title3, { fontWeight: '800', color: colors.coral }]}>
-                3
+                {groupsCount}
               </Text>
               <Text style={[typography.caption, { color: colors.textSecondary }]}>Nhóm riêng</Text>
             </View>
@@ -348,6 +399,12 @@ export default function ProfileScreen() {
         message={toastMessage || ''}
         type="success"
         onDismiss={() => setToastMessage(null)}
+      />
+
+      <ReefViewerModal
+        visible={reefViewerVisible}
+        reefs={myReefs}
+        onClose={() => setReefViewerVisible(false)}
       />
     </View>
   );

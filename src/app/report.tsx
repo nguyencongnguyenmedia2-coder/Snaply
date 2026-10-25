@@ -26,6 +26,9 @@ export default function ReportScreen() {
 
   const handleSubmit = () => {
     setSubmitting(true);
+    if (__DEV__) {
+      console.log(`[Report] Submitted report for moment ${momentId || 'unknown'}: ${selectedReason} - ${details}`);
+    }
     setTimeout(() => {
       setSubmitting(false);
       setToastMessage('Đã gửi báo cáo. Chúng tôi luôn ưu tiên an toàn và sự riêng tư.');

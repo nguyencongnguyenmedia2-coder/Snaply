@@ -6,7 +6,6 @@ import {
   FlatList,
   ScrollView,
   RefreshControl,
-  StyleSheet,
   Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -31,20 +30,27 @@ import {
 } from '@/services/momentsService';
 import { getFriends, getGroups } from '@/services/friendsService';
 import { realtimeManager } from '@/services/realtimeService';
+import { getActiveReefs, Reef } from '@/services/reefService';
+import { ReefViewerModal } from '@/components/reef/ReefViewerModal';
 import { Moment, Profile, Group } from '@/lib/supabase';
 
 export default function HomeFeedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii } = useTheme();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   const [moments, setMoments] = useState<Moment[]>([]);
   const [friends, setFriends] = useState<Profile[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [reefs, setReefs] = useState<Reef[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Reef Viewer state
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerReefs, setViewerReefs] = useState<Reef[]>([]);
 
   // Moment actions bottom sheet
   const [activeMoment, setActiveMoment] = useState<Moment | null>(null);
@@ -53,14 +59,16 @@ export default function HomeFeedScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [feedData, friendsData, groupsData] = await Promise.all([
+      const [feedData, friendsData, groupsData, reefsData] = await Promise.all([
         getFeedMoments(user?.id),
         getFriends(user?.id || 'demo'),
         getGroups(user?.id || 'demo'),
+        getActiveReefs(user?.id || 'demo'),
       ]);
       setMoments(feedData);
       setFriends(friendsData);
       setGroups(groupsData);
+      setReefs(reefsData);
     } catch (err) {
       console.warn('Failed to load feed:', err);
     } finally {
@@ -213,7 +221,7 @@ export default function HomeFeedScreen() {
         </View>
       </View>
 
-      {/* Friends Horizontal Story Bar */}
+      {/* Friends Horizontal Story & Reef Bar */}
       <View style={{ paddingVertical: spacing.xs }}>
         <ScrollView
           horizontal
@@ -222,62 +230,116 @@ export default function HomeFeedScreen() {
             paddingHorizontal: spacing.lg,
             alignItems: 'center',
           }}>
-          {/* Add story / Camera shortcut */}
+          {/* Post Reef / Story Button */}
           <Pressable
-            onPress={() => router.push('/(tabs)/camera')}
+            onPress={() => router.push('/reef/create')}
             style={{ alignItems: 'center', marginRight: spacing.md }}
             accessibilityRole="button"
-            accessibilityLabel="Chụp khoảnh khắc">
+            accessibilityLabel="Đăng tin Reef">
             <View
               style={{
-                width: 52,
-                height: 52,
+                width: 54,
+                height: 54,
                 borderRadius: radii.full,
                 borderWidth: 2,
                 borderColor: colors.coral,
-                borderStyle: 'dashed',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: colors.coralLight,
                 marginBottom: 4,
               }}>
-              <Ionicons name="add" size={26} color={colors.coral} />
+              <Ionicons name="sparkles" size={24} color={colors.coral} />
             </View>
             <Text
               style={[
                 typography.caption,
-                { color: colors.text, fontWeight: '600' },
+                { color: colors.coral, fontWeight: '700' },
               ]}>
-              Khoảnh khắc
+              + Đăng tin
             </Text>
           </Pressable>
 
-          {/* Friends list */}
-          {friends.map((friend, idx) => (
-            <Pressable
-              key={friend.id}
-              onPress={() => router.push(`/user/${friend.id}` as any)}
-              style={{ alignItems: 'center', marginRight: spacing.md }}
-              accessibilityRole="button"
-              accessibilityLabel={`Xem khoảnh khắc của ${friend.display_name}`}>
-              <MOMOAvatar
-                url={friend.avatar_url}
-                name={friend.display_name}
-                size="md"
-                hasUnseen={idx < 2}
-                isOnline={idx === 0}
-                style={{ marginBottom: 4 }}
-              />
-              <Text
-                style={[
-                  typography.caption,
-                  { color: colors.text, fontWeight: '500', maxWidth: 64 },
-                ]}
-                numberOfLines={1}>
-                {friend.display_name.split(' ')[0]}
-              </Text>
-            </Pressable>
-          ))}
+          {/* Quick Camera Shortcut */}
+          <Pressable
+            onPress={() => router.push('/(tabs)/camera')}
+            style={{ alignItems: 'center', marginRight: spacing.md }}
+            accessibilityRole="button"
+            accessibilityLabel="Chụp nhanh">
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: radii.full,
+                borderWidth: 1.5,
+                borderColor: colors.border,
+                borderStyle: 'dashed',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.surface,
+                marginBottom: 4,
+              }}>
+              <Ionicons name="camera" size={22} color={colors.textSecondary} />
+            </View>
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.textSecondary, fontWeight: '500' },
+              ]}>
+              Camera
+            </Text>
+          </Pressable>
+
+          {/* Friends Reef list */}
+          {friends.map((friend, idx) => {
+            const friendReefs = reefs.filter((r) => r.owner_id === friend.id);
+            const hasReefs = friendReefs.length > 0 || idx < 2; // Active story indicator
+
+            const handleFriendPress = () => {
+              if (friendReefs.length > 0) {
+                setViewerReefs(friendReefs);
+                setViewerVisible(true);
+              } else {
+                router.push(`/user/${friend.id}` as any);
+              }
+            };
+
+            return (
+              <Pressable
+                key={friend.id}
+                onPress={handleFriendPress}
+                style={{ alignItems: 'center', marginRight: spacing.md }}
+                accessibilityRole="button"
+                accessibilityLabel={`Xem tin Reef của ${friend.display_name}`}>
+                <View
+                  style={{
+                    padding: 2.5,
+                    borderRadius: radii.full,
+                    borderWidth: hasReefs ? 2.5 : 1,
+                    borderColor: hasReefs ? colors.coral : 'transparent',
+                    marginBottom: 2,
+                  }}>
+                  <MOMOAvatar
+                    url={friend.avatar_url}
+                    name={friend.display_name}
+                    size="md"
+                    isOnline={idx === 0}
+                  />
+                </View>
+                <Text
+                  style={[
+                    typography.caption,
+                    {
+                      color: hasReefs ? colors.text : colors.textSecondary,
+                      fontWeight: hasReefs ? '700' : '500',
+                      maxWidth: 64,
+                    },
+                  ]}
+                  numberOfLines={1}>
+                  {friend.display_name.split(' ')[0]}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -465,6 +527,12 @@ export default function HomeFeedScreen() {
         message={toastMessage || ''}
         type="success"
         onDismiss={() => setToastMessage(null)}
+      />
+
+      <ReefViewerModal
+        visible={viewerVisible}
+        reefs={viewerReefs}
+        onClose={() => setViewerVisible(false)}
       />
     </View>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,16 +28,16 @@ export default function FriendRequestsScreen() {
   const [loading, setLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     if (!user) return;
     const reqs = await getFriendRequests(user.id);
     setRequests(reqs);
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     loadRequests();
-  }, [user]);
+  }, [loadRequests]);
 
   const handleAccept = async (req: FriendRequest) => {
     if (!user) return;

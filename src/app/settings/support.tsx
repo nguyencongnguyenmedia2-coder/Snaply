@@ -6,7 +6,7 @@ import { MOMOHeader, MOMOTextField, MOMOButton, MOMOToast } from '@/components/u
 
 export default function SupportScreen() {
   const insets = useSafeAreaInsets();
-  const { colors, typography, spacing, radii } = useTheme();
+  const { colors, typography, spacing } = useTheme();
 
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');

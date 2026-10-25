@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
-import { MOMOHeader, MOMOAvatar, MOMOEmptyState } from '@/components/ui';
+import { MOMOHeader, MOMOAvatar } from '@/components/ui';
 
 interface NotificationItem {
   id: string;
@@ -47,6 +46,14 @@ export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii } = useTheme();
 
+  const handlePress = (item: NotificationItem) => {
+    if (item.type === 'friend') {
+      router.push('/friend-requests');
+    } else {
+      router.push('/(tabs)');
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <MOMOHeader showBack title="Thông báo" />
@@ -57,9 +64,10 @@ export default function NotificationsScreen() {
           paddingBottom: insets.bottom + 80,
         }}>
         {SAMPLE_NOTIFICATIONS.map((item) => (
-          <View
+          <Pressable
             key={item.id}
-            style={{
+            onPress={() => handlePress(item)}
+            style={({ pressed }) => ({
               backgroundColor: colors.surface,
               borderRadius: radii.xl,
               padding: spacing.md,
@@ -68,7 +76,8 @@ export default function NotificationsScreen() {
               alignItems: 'center',
               borderWidth: 1,
               borderColor: colors.border,
-            }}>
+              opacity: pressed ? 0.8 : 1,
+            })}>
             <MOMOAvatar url={item.avatarUrl} size="sm" />
 
             <View style={{ flex: 1, marginLeft: spacing.md }}>
@@ -82,7 +91,7 @@ export default function NotificationsScreen() {
                 {item.timestamp}
               </Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
     </View>

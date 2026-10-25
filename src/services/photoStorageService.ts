@@ -147,7 +147,7 @@ export async function uploadPhoto(params: {
     if (sessionData?.session?.user?.id) {
       effectiveOwnerId = sessionData.session.user.id;
     }
-  } catch (e) {
+  } catch {
     // Continue with passed ownerId
   }
 

@@ -10,7 +10,7 @@ class MOMORealtimeManager {
 
   public subscribeToMoments(
     userId: string,
-    onNewMoment: RealtimeCallback<any>,
+    onNewMoment: RealtimeCallback<Moment>,
     onDeleteMoment?: RealtimeCallback<string>
   ) {
     if (!isSupabaseConfigured) return () => {};
@@ -28,7 +28,7 @@ class MOMORealtimeManager {
           table: 'moments',
         },
         (payload) => {
-          onNewMoment(payload.new);
+          onNewMoment(payload.new as Moment);
         }
       )
       .on(

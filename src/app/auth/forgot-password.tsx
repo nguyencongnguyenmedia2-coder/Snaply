@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { MOMOHeader, MOMOTextField, MOMOButton, MOMOToast } from '@/components/ui';
+import { MOMOHeader, MOMOTextField, MOMOButton } from '@/components/ui';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();

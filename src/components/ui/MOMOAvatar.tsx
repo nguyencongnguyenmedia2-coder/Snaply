@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ViewStyle } from 'react-native';
+import { View, Text, Image, ViewStyle } from 'react-native';
 import { useTheme } from '@/theme';
 
 export interface MOMOAvatarProps {
@@ -19,7 +19,7 @@ export const MOMOAvatar: React.FC<MOMOAvatarProps> = ({
   isOnline = false,
   style,
 }) => {
-  const { colors, radii, typography } = useTheme();
+  const { colors, radii } = useTheme();
 
   const getPixelSize = () => {
     switch (size) {

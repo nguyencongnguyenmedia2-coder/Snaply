@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   Image,
   Pressable,
   Dimensions,
-  StyleSheet,
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -34,7 +33,7 @@ export default function MemoriesScreen() {
   const [newAlbumVisible, setNewAlbumVisible] = useState(false);
   const [albumTitle, setAlbumTitle] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     try {
       const [m, a] = await Promise.all([
@@ -46,11 +45,11 @@ export default function MemoriesScreen() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [loadData]);
 
   const handleCreateAlbum = async () => {
     if (!albumTitle.trim() || !user) return;

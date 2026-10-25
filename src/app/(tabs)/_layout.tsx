@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
+import { useAuth } from '@/context/AuthContext';
+import { getFriendRequests } from '@/services/friendsService';
 
 export default function TabsLayout() {
-  const { colors, radii, shadows, spacing } = useTheme();
+  const { colors, radii, shadows } = useTheme();
+  const { user } = useAuth();
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    getFriendRequests(user.id).then((reqs) => {
+      setPendingRequestsCount(reqs.length);
+    }).catch(() => {});
+  }, [user]);
 
   const handleTabPress = () => {
     if (Platform.OS !== 'web') {
@@ -57,6 +68,15 @@ export default function TabsLayout() {
         listeners={{ tabPress: handleTabPress }}
         options={{
           title: 'Bạn bè',
+          tabBarBadge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.coral,
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontWeight: '700',
+            minWidth: 18,
+            height: 18,
+          },
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'people' : 'people-outline'}

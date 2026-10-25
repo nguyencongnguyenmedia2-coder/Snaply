@@ -5,11 +5,7 @@ import {
   ScrollView,
   Image,
   Pressable,
-  Dimensions,
-  StyleSheet,
-  Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
@@ -18,6 +14,7 @@ import {
   MOMOHeader,
   MOMOButton,
   MOMOToast,
+  MOMOAvatar,
 } from '@/components/ui';
 import {
   getWidgetPreferences,
@@ -29,10 +26,7 @@ import {
 import { getFriends, getGroups } from '@/services/friendsService';
 import { Profile, Group } from '@/lib/supabase';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export default function WidgetConfigScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, shadows } = useTheme();
   const { user } = useAuth();
@@ -208,6 +202,108 @@ export default function WidgetConfigScreen() {
             })}
           </View>
         </View>
+
+        {/* Target Friend Selector */}
+        {prefs.variant === 'friend' && (
+          <View style={{ marginBottom: spacing.xl }}>
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
+              ]}>
+              CHỌN BẠN THÂN ({friends.length})
+            </Text>
+            {friends.length === 0 ? (
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                Chưa có bạn bè nào trong danh sách.
+              </Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
+                {friends.map((fr) => {
+                  const isPicked = prefs.targetId === fr.id;
+                  return (
+                    <Pressable
+                      key={fr.id}
+                      onPress={() => setPrefs({ ...prefs, targetId: fr.id })}
+                      style={{
+                        alignItems: 'center',
+                        marginRight: spacing.md,
+                        padding: spacing.sm,
+                        borderRadius: radii.lg,
+                        borderWidth: 1.5,
+                        borderColor: isPicked ? colors.coral : colors.border,
+                        backgroundColor: isPicked ? colors.coralLight : colors.surface,
+                      }}>
+                      <MOMOAvatar url={fr.avatar_url} size="md" />
+                      <Text
+                        style={[
+                          typography.caption,
+                          {
+                            marginTop: 4,
+                            fontWeight: isPicked ? '700' : '500',
+                            color: isPicked ? colors.coral : colors.text,
+                          },
+                        ]}>
+                        {fr.display_name || fr.username}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
+
+        {/* Target Group Selector */}
+        {prefs.variant === 'group' && (
+          <View style={{ marginBottom: spacing.xl }}>
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.textSecondary, marginBottom: spacing.sm, fontWeight: '700' },
+              ]}>
+              CHỌN NHÓM ({groups.length})
+            </Text>
+            {groups.length === 0 ? (
+              <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                Chưa có nhóm nào được tạo.
+              </Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
+                {groups.map((grp) => {
+                  const isPicked = prefs.targetId === grp.id;
+                  return (
+                    <Pressable
+                      key={grp.id}
+                      onPress={() => setPrefs({ ...prefs, targetId: grp.id })}
+                      style={{
+                        alignItems: 'center',
+                        marginRight: spacing.md,
+                        padding: spacing.sm,
+                        borderRadius: radii.lg,
+                        borderWidth: 1.5,
+                        borderColor: isPicked ? colors.coral : colors.border,
+                        backgroundColor: isPicked ? colors.coralLight : colors.surface,
+                      }}>
+                      <MOMOAvatar url={grp.avatar_url} size="md" />
+                      <Text
+                        style={[
+                          typography.caption,
+                          {
+                            marginTop: 4,
+                            fontWeight: isPicked ? '700' : '500',
+                            color: isPicked ? colors.coral : colors.text,
+                          },
+                        ]}>
+                        {grp.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+        )}
 
         {/* Photo Framing Selector */}
         <View style={{ marginBottom: spacing.xl }}>

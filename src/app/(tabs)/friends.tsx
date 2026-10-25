@@ -2,11 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   Pressable,
   ScrollView,
   RefreshControl,
-  StyleSheet,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +27,7 @@ import {
   getGroups,
   sendFriendRequest,
   createGroup,
+  removeFriend,
 } from '@/services/friendsService';
 import { Profile, FriendRequest, Group } from '@/lib/supabase';
 
@@ -82,7 +82,8 @@ export default function FriendsScreen() {
     setAddLoading(true);
     setAddError(null);
 
-    const { error } = await sendFriendRequest(user.id, usernameInput.trim());
+    const clean = usernameInput.replace(/^@/, '').trim();
+    const { error } = await sendFriendRequest(user.id, clean);
     setAddLoading(false);
 
     if (error) {
@@ -90,8 +91,29 @@ export default function FriendsScreen() {
     } else {
       setAddFriendVisible(false);
       setUsernameInput('');
-      setToastMessage(`Đã gửi lời mời kết bạn đến @${usernameInput.trim()} ✨`);
+      setToastMessage(`Đã gửi lời mời kết bạn đến @${clean} ✨`);
+      loadData();
     }
+  };
+
+  const handleRemoveFriend = (friend: Profile) => {
+    if (!user) return;
+    Alert.alert(
+      'Hủy kết bạn',
+      `Bạn có chắc chắn muốn hủy kết bạn với ${friend.display_name}?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Hủy kết bạn',
+          style: 'destructive',
+          onPress: async () => {
+            await removeFriend(user.id, friend.id);
+            setToastMessage(`Đã hủy kết bạn với ${friend.display_name}`);
+            loadData();
+          },
+        },
+      ]
+    );
   };
 
   const handleCreateGroup = async () => {
@@ -255,65 +277,115 @@ export default function FriendsScreen() {
             BẠN THÂN ({friends.length})
           </Text>
 
-          {friends.map((friend, index) => (
-            <Pressable
-              key={friend.id}
-              onPress={() => router.push(`/user/${friend.id}` as any)}
-              style={({ pressed }) => ({
+          {friends.length === 0 ? (
+            <View
+              style={{
                 backgroundColor: colors.surface,
-                borderRadius: radii.lg,
-                padding: spacing.md,
-                marginBottom: spacing.sm,
-                flexDirection: 'row',
+                borderRadius: radii.xl,
+                padding: spacing.xl,
                 alignItems: 'center',
                 borderWidth: 1,
                 borderColor: colors.border,
-                opacity: pressed ? 0.85 : 1,
-              })}>
-              <MOMOAvatar
-                url={friend.avatar_url}
-                name={friend.display_name}
+                marginVertical: spacing.sm,
+              }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: radii.full,
+                  backgroundColor: colors.coralLight,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: spacing.md,
+                }}>
+                <Ionicons name="people-outline" size={30} color={colors.coral} />
+              </View>
+              <Text style={[typography.headline, { color: colors.text, textAlign: 'center', marginBottom: 4 }]}>
+                Chưa có bạn thân nào
+              </Text>
+              <Text
+                style={[
+                  typography.caption,
+                  { color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg, lineHeight: 18 },
+                ]}>
+                Hãy tìm kiếm theo tên hoặc @username để kết nối và chia sẻ khoảnh khắc cùng nhau!
+              </Text>
+              <MOMOButton
+                title="Tìm bạn bè ngay"
+                onPress={() => router.push('/search')}
                 size="md"
-                isOnline={index === 0}
+                variant="primary"
+                style={{ width: '80%' }}
               />
+            </View>
+          ) : (
+            friends.map((friend, index) => (
+              <Pressable
+                key={friend.id}
+                onPress={() => router.push(`/user/${friend.id}` as any)}
+                style={({ pressed }) => ({
+                  backgroundColor: colors.surface,
+                  borderRadius: radii.lg,
+                  padding: spacing.md,
+                  marginBottom: spacing.sm,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  opacity: pressed ? 0.85 : 1,
+                })}>
+                <MOMOAvatar
+                  url={friend.avatar_url}
+                  name={friend.display_name}
+                  size="md"
+                  isOnline={index === 0}
+                />
 
-              <View style={{ flex: 1, marginLeft: spacing.md }}>
-                <Text style={[typography.headline, { color: colors.text }]}>
-                  {friend.display_name}
-                </Text>
-                <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                  @{friend.username}
-                </Text>
-                {friend.bio && (
-                  <Text
-                    style={[
-                      typography.footnote,
-                      { color: colors.textSecondary, marginTop: 2 },
-                    ]}
-                    numberOfLines={1}>
-                    {friend.bio}
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
+                  <Text style={[typography.headline, { color: colors.text }]}>
+                    {friend.display_name}
                   </Text>
-                )}
-              </View>
+                  <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                    @{friend.username}
+                  </Text>
+                  {friend.bio && (
+                    <Text
+                      style={[
+                        typography.footnote,
+                        { color: colors.textSecondary, marginTop: 2 },
+                      ]}
+                      numberOfLines={1}>
+                      {friend.bio}
+                    </Text>
+                  )}
+                </View>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <MOMOIconButton
-                  icon={<Ionicons name="chatbubble-ellipses-outline" size={19} color={colors.coral} />}
-                  onPress={() => router.push({ pathname: '/chat/[id]', params: { id: friend.id, type: 'direct' } })}
-                  accessibilityLabel={`Nhắn tin với ${friend.display_name}`}
-                  variant="subtle"
-                  size={36}
-                />
-                <MOMOIconButton
-                  icon={<Ionicons name="camera-outline" size={19} color={colors.coral} />}
-                  onPress={() => router.push('/(tabs)/camera')}
-                  accessibilityLabel={`Gửi khoảnh khắc cho ${friend.display_name}`}
-                  variant="subtle"
-                  size={36}
-                />
-              </View>
-            </Pressable>
-          ))}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MOMOIconButton
+                    icon={<Ionicons name="chatbubble-ellipses-outline" size={19} color={colors.coral} />}
+                    onPress={() => router.push({ pathname: '/chat/[id]', params: { id: friend.id, type: 'direct' } })}
+                    accessibilityLabel={`Nhắn tin với ${friend.display_name}`}
+                    variant="subtle"
+                    size={36}
+                  />
+                  <MOMOIconButton
+                    icon={<Ionicons name="camera-outline" size={19} color={colors.coral} />}
+                    onPress={() => router.push('/(tabs)/camera')}
+                    accessibilityLabel={`Gửi khoảnh khắc cho ${friend.display_name}`}
+                    variant="subtle"
+                    size={36}
+                  />
+                  <MOMOIconButton
+                    icon={<Ionicons name="ellipsis-vertical" size={17} color={colors.textSecondary} />}
+                    onPress={() => handleRemoveFriend(friend)}
+                    accessibilityLabel="Tùy chọn bạn bè"
+                    variant="subtle"
+                    size={36}
+                  />
+                </View>
+              </Pressable>
+            ))
+          )}
         </View>
       </ScrollView>
 

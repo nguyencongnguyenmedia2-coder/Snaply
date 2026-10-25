@@ -35,7 +35,7 @@ export default function GroupDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { colors, typography, spacing, radii, shadows } = useTheme();
+  const { colors, typography, shadows } = useTheme();
   const { user, profile } = useAuth();
 
   const [group, setGroup] = useState<Group | null>(null);

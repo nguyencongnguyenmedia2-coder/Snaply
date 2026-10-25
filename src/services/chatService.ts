@@ -437,7 +437,7 @@ export async function postGroupPhoto(params: {
 }): Promise<{ message: Message; momentId: string }> {
   const { groupId, groupName, ownerId, ownerProfile, photoUri, caption, onProgress } = params;
 
-  onProgress?.('Đang nén & lưu ảnh nhóm...');
+  onProgress?.(`Đang nén & lưu ảnh nhóm ${groupName}...`);
 
   // 1. Upload via Snaply two-tier compression & private storage
   const photo = await uploadPhoto({

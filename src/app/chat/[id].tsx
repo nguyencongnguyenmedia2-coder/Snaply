@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -45,7 +45,7 @@ export default function ChatScreen() {
   const router = useRouter();
   const { id, type = 'group' } = useLocalSearchParams<{ id: string; type?: 'group' | 'direct' }>();
   const insets = useSafeAreaInsets();
-  const { colors, typography, spacing, radii, shadows } = useTheme();
+  const { colors, typography, shadows } = useTheme();
   const { user, profile } = useAuth();
 
   const isGroup = type === 'group';
@@ -232,7 +232,7 @@ export default function ChatScreen() {
         setMessages((prev) => [...prev, res.message]);
       } else {
         // Upload photo and send as direct message
-        const photo = await sendChatMessage({
+        await sendChatMessage({
           currentUserId: user.id,
           senderProfile: profile,
           recipientId: id,

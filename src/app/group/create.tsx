@@ -25,7 +25,7 @@ const GROUP_AVATAR_OPTIONS = [
 export default function CreateGroupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colors, typography, spacing, radii, shadows } = useTheme();
+  const { colors, typography, shadows } = useTheme();
   const { user } = useAuth();
 
   const [groupName, setGroupName] = useState('');

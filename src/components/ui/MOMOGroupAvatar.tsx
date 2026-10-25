@@ -4,7 +4,7 @@ import { useTheme } from '@/theme';
 import { MOMOAvatar } from './MOMOAvatar';
 
 export interface MOMOGroupAvatarProps {
-  members: Array<{ id: string; name?: string; avatar_url?: string | null }>;
+  members: { id: string; name?: string; avatar_url?: string | null }[];
   maxVisible?: number;
   size?: 'xs' | 'sm' | 'md';
   style?: ViewStyle;
@@ -16,7 +16,7 @@ export const MOMOGroupAvatar: React.FC<MOMOGroupAvatarProps> = ({
   size = 'sm',
   style,
 }) => {
-  const { colors, typography, radii } = useTheme();
+  const { colors, radii } = useTheme();
   const visible = members.slice(0, maxVisible);
   const remaining = Math.max(0, members.length - maxVisible);
 
