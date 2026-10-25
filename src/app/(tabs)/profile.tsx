@@ -98,35 +98,12 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = async () => {
-    const doLogout = async () => {
-      try {
-        await signOut();
-        router.replace('/auth/sign-in');
-      } catch (err) {
-        console.warn('Sign out error:', err);
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      const confirmed = typeof window !== 'undefined' ? window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi Snaply?') : true;
-      if (confirmed) {
-        await doLogout();
-      }
-      return;
+    try {
+      await signOut();
+      router.replace('/auth/sign-in');
+    } catch (err) {
+      console.warn('Sign out error:', err);
     }
-
-    Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi Snaply?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đăng xuất',
-          style: 'destructive',
-          onPress: doLogout,
-        },
-      ]
-    );
   };
 
   return (
