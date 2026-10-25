@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   ScrollView,
   RefreshControl,
@@ -171,21 +172,27 @@ export default function HomeFeedScreen() {
           alignItems: 'center',
           justifyContent: 'space-between',
         }}>
-        <View>
-          <Text
-            style={[
-              typography.title1,
-              { color: colors.coral, fontWeight: '900', letterSpacing: -0.5 },
-            ]}>
-            momo
-          </Text>
-          <Text
-            style={[
-              typography.caption,
-              { color: colors.textSecondary, fontWeight: '600' },
-            ]}>
-            Khoảnh khắc nhỏ, gắn kết hơn.
-          </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Image
+            source={require('../../../assets/images/icon.png')}
+            style={{ width: 38, height: 38, borderRadius: radii.md, marginRight: spacing.sm }}
+          />
+          <View>
+            <Text
+              style={[
+                typography.title1,
+                { color: colors.coral, fontWeight: '900', letterSpacing: -0.5 },
+              ]}>
+              Snaply
+            </Text>
+            <Text
+              style={[
+                typography.caption,
+                { color: colors.textSecondary, fontWeight: '600' },
+              ]}>
+              Khoảnh khắc nhỏ, gắn kết hơn.
+            </Text>
+          </View>
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -249,7 +256,7 @@ export default function HomeFeedScreen() {
           {friends.map((friend, idx) => (
             <Pressable
               key={friend.id}
-              onPress={() => router.push('/(tabs)/friends')}
+              onPress={() => router.push(`/user/${friend.id}` as any)}
               style={{ alignItems: 'center', marginRight: spacing.md }}
               accessibilityRole="button"
               accessibilityLabel={`Xem khoảnh khắc của ${friend.display_name}`}>

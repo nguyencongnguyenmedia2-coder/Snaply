@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "MOMO",
-    "slug": "momo",
+    "name": "Snaply",
+    "slug": "snaply",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "momo",
+    "scheme": "snaply",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.momo.moments",
+      "bundleIdentifier": "com.snaply.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "MOMO needs camera access so you can capture intimate real-life moments to share with your friends and home-screen widgets.",
-        "NSPhotoLibraryUsageDescription": "MOMO needs photo library access so you can select and save personal memories.",
-        "NSPhotoLibraryAddUsageDescription": "MOMO needs permission to save moments into your photo library."
+        "NSCameraUsageDescription": "Snaply cần quyền truy cập camera để bạn chụp ảnh và chia sẻ khoảnh khắc với bạn bè.",
+        "NSPhotoLibraryUsageDescription": "Snaply cần quyền truy cập thư viện ảnh để bạn chọn và lưu ảnh kỷ niệm.",
+        "NSPhotoLibraryAddUsageDescription": "Snaply cần quyền lưu khoảnh khắc vào thư viện ảnh của bạn."
       }
     },
     "android": {
@@ -23,7 +23,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.momo.moments",
+      "package": "com.snaply.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -49,13 +49,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow MOMO to capture moments for your friends and widgets."
+          "cameraPermission": "Cho phép Snaply chụp ảnh để chia sẻ khoảnh khắc với bạn bè."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow MOMO to access photos for memories and sharing."
+          "photosPermission": "Cho phép Snaply truy cập thư viện ảnh để chia sẻ kỷ niệm."
         }
       ],
       [
@@ -68,14 +68,14 @@
       [
         "expo-widgets",
         {
-          "bundleIdentifier": "com.momo.moments.widgets",
-          "groupIdentifier": "group.com.momo.moments",
+          "bundleIdentifier": "com.snaply.app.widgets",
+          "groupIdentifier": "group.com.snaply.app",
           "enableAndroid": true,
           "widgets": [
             {
-              "name": "MOMOLatestWidget",
-              "displayName": "MOMO Latest Moment",
-              "description": "See the latest intimate photo moment from your friends.",
+              "name": "SnaplyLatestWidget",
+              "displayName": "Snaply Khoảnh Khắc Mới Nhất",
+              "description": "Xem khoảnh khắc ảnh mới nhất từ bạn thân trên màn hình chính.",
               "ios": {
                 "supportedFamilies": ["systemSmall", "systemMedium"],
                 "initialLayout": "src/widgets/MOMOLatestWidget.ios.tsx"

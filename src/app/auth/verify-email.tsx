@@ -53,7 +53,7 @@ export default function VerifyEmailScreen() {
               marginBottom: spacing.xxxl,
             },
           ]}>
-          Vui lòng kiểm tra hộp thư email của bạn và nhấn vào liên kết xác nhận để kích hoạt tài khoản MOMO.
+          Vui lòng kiểm tra hộp thư email của bạn và nhấn vào liên kết xác nhận để kích hoạt tài khoản Snaply.
         </Text>
 
         <MOMOButton

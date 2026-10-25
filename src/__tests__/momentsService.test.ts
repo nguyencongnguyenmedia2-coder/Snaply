@@ -44,7 +44,7 @@ describe('momentsService Integration & Unit Tests', () => {
     const widgetSnapshot = await getLatestWidgetSnapshot();
     expect(widgetSnapshot).not.toBeNull();
     expect(widgetSnapshot?.latestMomentId).toBe(newMoment.id);
-    expect(widgetSnapshot?.deepLink).toBe(`momo://moment/${newMoment.id}`);
+    expect(widgetSnapshot?.deepLink).toBe(`snaply://moment/${newMoment.id}`);
   });
 
   it('handles emoji reactions: adds reaction and toggles off on repeated tap', async () => {

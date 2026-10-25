@@ -12,13 +12,13 @@ import type { MOMOWidgetSnapshot } from './types';
 const defaultSnapshot: MOMOWidgetSnapshot = {
   momentId: '',
   latestMomentId: '',
-  authorName: 'MOMO Friends',
-  authorUsername: 'momo',
+  authorName: 'Snaply Friends',
+  authorUsername: 'snaply',
   caption: 'Waiting for new moments...',
   timeAgo: 'Just now',
   photoUrl: '',
   imageUrl: '',
-  deepLink: 'momo://',
+  deepLink: 'snaply://',
   hasUnseen: false,
   isEmpty: true,
 };

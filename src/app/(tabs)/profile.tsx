@@ -66,7 +66,7 @@ export default function ProfileScreen() {
   const handleSignOut = async () => {
     Alert.alert(
       'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi MOMO?',
+      'Bạn có chắc chắn muốn đăng xuất khỏi Snaply?',
       [
         { text: 'Hủy', style: 'cancel' },
         {

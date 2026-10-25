@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   Pressable,
   KeyboardAvoidingView,
@@ -62,31 +63,28 @@ export default function SignInScreen() {
         keyboardShouldPersistTaps="handled">
         {/* Brand Icon & Heading */}
         <View style={{ alignItems: 'center', marginBottom: spacing.xxxl }}>
-          <View
+          <Image
+            source={require('../../../assets/images/icon.png')}
             style={{
-              width: 80,
-              height: 80,
+              width: 96,
+              height: 96,
               borderRadius: radii.xxl,
-              backgroundColor: colors.coral,
-              alignItems: 'center',
-              justifyContent: 'center',
               marginBottom: spacing.md,
-            }}>
-            <Ionicons name="heart" size={44} color="#FFFFFF" />
-          </View>
+            }}
+          />
           <Text
             style={[
               typography.display,
               { color: colors.coral, fontWeight: '900', letterSpacing: -0.5 },
             ]}>
-            momo
+            Snaply
           </Text>
           <Text
             style={[
               typography.callout,
               { color: colors.textSecondary, marginTop: 4, fontWeight: '500' },
             ]}>
-            Khoảnh khắc nhỏ, gắn kết hơn.
+            Chia sẻ khoảnh khắc với bạn thân.
           </Text>
         </View>
 

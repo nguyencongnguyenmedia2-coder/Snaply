@@ -119,7 +119,7 @@ export default function SignUpScreen() {
     } else if (requiresEmailConfirmation) {
       setConfirmationNotice(email.trim());
     } else {
-      setToastMessage('Đăng ký thành công! Chào mừng bạn đến với MOMO 🌸');
+      setToastMessage('Đăng ký thành công! Chào mừng bạn đến với Snaply 🌸');
       setTimeout(() => {
         router.replace('/(tabs)');
       }, 700);
@@ -184,7 +184,7 @@ export default function SignUpScreen() {
               ]}>
               Chúng mình đã gửi liên kết kích hoạt đến{' '}
               <Text style={{ fontWeight: '700', color: colors.text }}>{confirmationNotice}</Text>.
-              Vui lòng mở email và nhấn vào liên kết để bắt đầu sử dụng MOMO.
+              Vui lòng mở email và nhấn vào liên kết để bắt đầu sử dụng Snaply.
             </Text>
 
             <MOMOButton
@@ -203,7 +203,7 @@ export default function SignUpScreen() {
                 typography.body,
                 { color: colors.textSecondary, marginBottom: spacing.lg, lineHeight: 22 },
               ]}>
-              Tham gia MOMO và bắt đầu chia sẻ những khoảnh khắc bình yên, gần gũi với người thân yêu nhất.
+              Tham gia Snaply và bắt đầu chia sẻ những khoảnh khắc bình yên, gần gũi với người thân yêu nhất.
             </Text>
 
             {/* Avatar Selector */}
@@ -213,7 +213,7 @@ export default function SignUpScreen() {
                 style={{ position: 'relative', marginBottom: spacing.sm }}
                 accessibilityRole="button"
                 accessibilityLabel="Chọn ảnh đại diện">
-                <MOMOAvatar url={avatarUrl} name={displayName || 'MOMO'} size="xl" />
+                <MOMOAvatar url={avatarUrl} name={displayName || 'Snaply'} size="xl" />
                 <View
                   style={{
                     position: 'absolute',
@@ -357,7 +357,7 @@ export default function SignUpScreen() {
               <Text style={[typography.caption, { color: colors.textSecondary, flex: 1, lineHeight: 18 }]}>
                 Tôi đồng ý với{' '}
                 <Text style={{ color: colors.coral, fontWeight: '700' }}>Điều khoản dịch vụ</Text> và{' '}
-                <Text style={{ color: colors.coral, fontWeight: '700' }}>Chính sách bảo mật</Text> của MOMO.
+                <Text style={{ color: colors.coral, fontWeight: '700' }}>Chính sách bảo mật</Text> của Snaply.
               </Text>
             </Pressable>
             {errors.agreedToTerms && (
@@ -368,7 +368,7 @@ export default function SignUpScreen() {
 
             {/* Submit Button */}
             <MOMOButton
-              title="Tạo tài khoản MOMO"
+              title="Tạo tài khoản Snaply"
               onPress={handleSignUp}
               loading={isLoading}
               variant="primary"

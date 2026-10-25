@@ -13,13 +13,13 @@ import type { MOMOWidgetSnapshot } from './types';
 const defaultSnapshot: MOMOWidgetSnapshot = {
   momentId: '',
   latestMomentId: '',
-  authorName: 'MOMO Friends',
-  authorUsername: 'momo',
+  authorName: 'Snaply Friends',
+  authorUsername: 'snaply',
   caption: 'Waiting for new moments...',
   timeAgo: 'Just now',
   photoUrl: '',
   imageUrl: '',
-  deepLink: 'momo://',
+  deepLink: 'snaply://',
   hasUnseen: false,
   isEmpty: true,
 };
@@ -37,7 +37,7 @@ const MOMOLatestWidget = (
   const textMuted = '#8A7B75';
 
   const isSmall = environment.widgetFamily === 'systemSmall';
-  const destination = props.deepLink || 'momo://';
+  const destination = props.deepLink || 'snaply://';
 
   if (props.isEmpty || !props.momentId) {
     return (

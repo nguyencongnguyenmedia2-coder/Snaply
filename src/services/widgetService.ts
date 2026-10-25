@@ -57,12 +57,12 @@ export async function updateWidgetMomentsSnapshot(
       momentId: '',
       latestMomentId: '',
       authorName: 'MOMO Friends',
-      authorUsername: 'momo',
+      authorUsername: 'snaply',
       caption: 'Waiting for new moments...',
       timeAgo: 'Just now',
       photoUrl: '',
       imageUrl: '',
-      deepLink: 'momo://',
+      deepLink: 'snaply://',
       hasUnseen: false,
       isEmpty: true,
     };
@@ -77,7 +77,7 @@ export async function updateWidgetMomentsSnapshot(
       timeAgo: formatTimeAgo(latest.created_at),
       photoUrl: latest.media_url,
       imageUrl: latest.media_url,
-      deepLink: `momo://moment/${latest.id}`,
+      deepLink: `snaply://moment/${latest.id}`,
       hasUnseen: false,
       isEmpty: false,
     };

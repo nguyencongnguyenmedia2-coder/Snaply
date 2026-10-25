@@ -30,7 +30,7 @@ export default function ForgotPasswordScreen() {
       if (isSupabaseConfigured) {
         const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
           email.trim(),
-          { redirectTo: 'momo://auth/reset-password' }
+          { redirectTo: 'snaply://auth/reset-password' }
         );
         if (resetErr) throw resetErr;
       }
@@ -98,7 +98,7 @@ export default function ForgotPasswordScreen() {
                 typography.body,
                 { color: colors.textSecondary, marginBottom: spacing.xl, lineHeight: 22 },
               ]}>
-              Nhập địa chỉ email liên kết với tài khoản MOMO của bạn. Chúng mình sẽ gửi liên kết an toàn để đặt lại mật khẩu.
+              Nhập địa chỉ email liên kết với tài khoản Snaply của bạn. Chúng mình sẽ gửi liên kết an toàn để đặt lại mật khẩu.
             </Text>
 
             <MOMOTextField
